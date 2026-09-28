@@ -1,219 +1,117 @@
-# Arquitetura - Grimório
+﻿# Arquitetura - Grimório
 
-## 1. Objetivo
+## 1. Objetivo e Visão
 
-A arquitetura foi pensada para um aplicativo Android offline-first, com uma base simples para a atividade e espaço para evoluir para colaboração, notificações e inteligência de planejamento sem acoplar a interface diretamente ao backend.
+O Grimório é um aplicativo Android/multiplataforma offline-first desenvolvido com React Native, Expo e TypeScript. A arquitetura foi desenhada segundo os princípios da Clean Architecture (Arquitetura Limpa), garantindo que as regras de negócio centrais permaneçam puras, determinísticas e totalmente desacopladas de frameworks de UI ou dependências externas.
 
-O protótipo atual usa Expo, React Native e TypeScript. A implementação completa deve preservar esse stack e separar apresentação, regras de negócio e persistência.
+---
 
-## 2. Visão geral
+## 2. Diagrama de Camadas da Aplicação
 
 ```mermaid
 flowchart TD
-    UI[React Native / Expo\nTelas e componentes] --> STORE[Estado da aplicação\nZustand ou Redux Toolkit]
-    STORE --> USECASES[Casos de uso\nCriar, concluir, priorizar, focar]
-    USECASES --> DOMAIN[Domínio\nTarefa, recorrência, XP, níveis]
-    DOMAIN --> REPO[Interfaces de repositório]
-    REPO --> LOCAL[(SQLite / Expo SQLite\nFonte local offline)]
-    REPO --> SYNC[Motor de sincronização\nFila de operações e conflitos]
-    SYNC --> API[API Node.js / REST]
-    API --> DB[(PostgreSQL)]
-    API --> SERVICES[Serviços externos\nFCM, Storage, calendário, IA]
+    subgraph Presentation ["Camada de Apresentação (src/presentation)"]
+        HomeScreen["HomeScreen (ViewSwitcher: Lista / Kanban / Projetos)"]
+        Components["Componentes (TaskCard, FilterBar, TaskFormModal, ProjectModal, EmptyState)"]
+        Hook["useTasks (Hook de Estado Reativo)"]
+    end
+
+    subgraph Domain ["Camada de Domínio (src/domain)"]
+        Entities["Entidades (Task, Subtask, Project, TaskStatus)"]
+        Validation["Serviço de Validação (taskValidation.ts)"]
+        Prioritization["Serviço de Priorização (prioritization.ts)"]
+        ProjectService["Serviço de Projetos (projectService.ts)"]
+    end
+
+    subgraph Infrastructure ["Camada de Infraestrutura (src/infrastructure)"]
+        Repo["TaskRepository (CRUD, Subtarefas, Kanban, Projetos)"]
+        Storage["AsyncStorage / InMemoryStorage (Persistência Offline-First)"]
+    end
+
+    HomeScreen --> Hook
+    Components --> Hook
+    Hook --> Repo
+    Hook --> Prioritization
+    Hook --> ProjectService
+    Repo --> Entities
+    Repo --> Validation
+    Repo --> Storage
 ```
 
-## 3. Camadas
+---
 
-### Apresentação
+## 3. Detalhamento das Camadas
 
-Responsável apenas por renderizar estado e emitir ações do usuário.
+### 3.1. Camada de Domínio (`src/domain`)
+Regras puras em TypeScript, sem nenhuma dependência do React ou Expo:
+- **`entities/task.ts`**:
+  - `Task`: modelo principal com título, descrição, prazo (`dueDate`, `dueTime`), prioridade, categoria, esforço estimado (`estimatedMinutes`), status (`todo` | `in_progress` | `done`), `projectId`, `subtasks` e timestamps.
+  - `Subtask`: decomposição com `id`, `title`, `completed`, `createdAt`.
+  - `Project`: agrupamento temático com `id`, `name`, `description`, `color`, `icon`.
+  - `ProjectProgress`: métricas visuais contendo `totalTasks`, `completedTasks`, `progressPercent`.
+  - DTOs: `CreateTaskDTO`, `UpdateTaskDTO`, `CreateProjectDTO`, `SubtaskInputDTO`.
+- **`services/taskValidation.ts`**:
+  - Validação estrita de datas (AAAA-MM-DD), horários (HH:MM), título obrigatório, limites de caracteres e valores numéricos válidos.
+  - `validateCreateProjectInput`: validação de nomes e descrições de projetos.
+- **`services/prioritization.ts`**:
+  - Algoritmo determinístico de cálculo de urgência e pontuação (0 a 100 pontos) baseado em prazos, prioridade e tempo estimado.
+- **`services/projectService.ts`**:
+  - `calculateProjectProgress`: cálculo puro da porcentagem de conclusão de projetos.
+  - `getAllProjectsProgress`: agregação em lote para todos os projetos ativos.
 
-- `src/screens`: Dashboard, tarefas, Kanban, calendário, foco, histórico e perfil.
-- `src/components`: TaskCard, ProgressRing, XpBadge, StreakCard, TaskForm e filtros.
-- `src/navigation`: navegação por abas e pilhas de telas.
-- `src/theme`: cores, tipografia, espaçamentos e tokens do tema arcano.
+### 3.2. Camada de Infraestrutura (`src/infrastructure`)
+- **`repositories/taskRepository.ts`**:
+  - Implementa persistência offline-first utilizando `@react-native-async-storage/async-storage` com cache em memória síncrono para respostas instantâneas.
+  - Suporta injeção de dependência de `IStorage`, permitindo 100% de isolamento em testes unitários.
+  - Operações de Subtarefas (US02): `addSubtask`, `toggleSubtask`, `removeSubtask`.
+  - Máquina de Estados Kanban (US03): `moveTaskKanban(id, newStatus)` gerenciando timestamps de conclusão (`completedAt`).
+  - Gestão de Projetos (US04): `getProjects`, `createProject`, `deleteProject` (com desvinculação segura das tarefas associadas).
 
-A tela não deve calcular XP, próxima ocorrência ou pontuação de prioridade. Ela chama um caso de uso e exibe o resultado.
+### 3.3. Camada de Apresentação (`src/presentation`)
+- **`screens/HomeScreen.tsx`**:
+  - Controla o seletor de visualização (`viewMode`: `'list' | 'kanban' | 'projects'`).
+  - View Lista (US01 & US02): rituais do dia, filtros dinâmicos, cards expansíveis com subtarefas.
+  - View Kanban (US03): 3 colunas de status com transições táteis diretas nos cards e layout responsivo.
+  - View Projetos (US04): cards de projetos com barras de progresso visual, contadores e lista expansível de tarefas.
+- **`components/`**:
+  - `TaskCard.tsx`: card de tarefa com indicador de projeto, badge de pontuação, checklist de subtarefas expansível e botões de transição Kanban.
+  - `FilterBar.tsx`: filtros rápidos por status, categoria, prioridade e projeto sem emojis do sistema operacional.
+  - `TaskFormModal.tsx`: formulário modal completo com seletor de projeto e checklist builder.
+  - `ProjectModal.tsx`: modal para criação de novos projetos com paleta de cores e ícones arcanos.
+  - `PriorityScoreBadge.tsx`: detalhamento dos fatores matemáticos calculados para a sugestão de prioridade.
+  - `ArchivedTasksModal.tsx`: arquivo sagrado com restauração e exclusão permanente.
+- **`theme/colors.ts`**:
+  - Paleta arcana: pergaminho (`#f6f1e8`), ameixa (`#403243`), dourado (`#c38b32`), sálvia (`#778b72`), tinta (`#25221d`).
 
-### Aplicação
+---
 
-Orquestra os fluxos do produto e coordena estado, domínio e repositórios.
-
-- `createTask`
-- `completeTask`
-- `updateTaskStatus`
-- `suggestTaskOrder`
-- `generateNextRecurrence`
-- `startFocusSession`
-- `recordCompletionFeedback`
-- `syncPendingChanges`
-
-### Domínio
-
-Contém regras puras, testáveis e independentes de React ou Expo.
-
-- `Task`: título, descrição, prazo, prioridade, esforço, status, recorrência e vínculos.
-- `Subtask` e `ChecklistItem`: decomposição e progresso interno.
-- `Project` e `Tag`: agrupamento e filtragem.
-- `RecurrenceRule`: periodicidade e exceções.
-- `PriorityScore`: urgência + importância + esforço + energia.
-- `GamificationProfile`: XP, nível, sequência, missões e medalhas.
-
-### Infraestrutura
-
-Implementa os contratos definidos pela aplicação.
-
-- `SQLiteTaskRepository`: persistência local.
-- `ApiTaskRepository`: comunicação com o backend.
-- `SyncQueue`: operações pendentes quando offline.
-- `NotificationService`: lembretes locais e FCM em etapa posterior.
-- `AttachmentService`: documentos, imagens e áudio em etapa posterior.
-
-## 4. Modelo de dados inicial
+## 4. Máquina de Estados de Tarefas (Kanban)
 
 ```mermaid
-erDiagram
-    USER ||--o{ TASK : creates
-    PROJECT ||--o{ TASK : groups
-    TASK ||--o{ TASK : contains
-    TASK ||--o{ CHECKLIST_ITEM : has
-    TASK ||--o{ REMINDER : schedules
-    TASK ||--o{ TIME_ENTRY : tracks
-    TASK }o--o{ TAG : labels
-    USER ||--o{ GAMIFICATION_EVENT : earns
-
-    USER {
-      uuid id PK
-      string name
-      int total_xp
-      int current_level
-      int streak_days
-    }
-    TASK {
-      uuid id PK
-      uuid parent_id FK
-      uuid project_id FK
-      string title
-      string description
-      datetime due_at
-      string status
-      string priority
-      int estimated_minutes
-      bool archived
-      string recurrence_rule
-      datetime updated_at
-    }
-    CHECKLIST_ITEM {
-      uuid id PK
-      uuid task_id FK
-      string label
-      bool completed
-    }
-    PROJECT {
-      uuid id PK
-      string name
-      string color
-      bool archived
-    }
-    TAG {
-      uuid id PK
-      string name
-      string color
-    }
-    GAMIFICATION_EVENT {
-      uuid id PK
-      uuid user_id FK
-      uuid task_id FK
-      string type
-      int xp_amount
-      datetime created_at
-    }
+stateDiagram-v2
+    [*] --> todo: Criar Tarefa
+    todo --> in_progress: Iniciar [US03]
+    in_progress --> todo: Voltar [US03]
+    in_progress --> done: Concluir [US01/US03]
+    done --> in_progress: Reabrir [US03]
+    done --> todo: Reabrir [US01]
+    todo --> archived: Arquivar [US01]
+    done --> archived: Arquivar [US01]
+    archived --> todo: Restaurar [US01]
+    archived --> [*]: Excluir Definitivamente
 ```
 
-## 5. Fluxo offline-first
+---
 
-1. A tela envia uma ação para um caso de uso.
-2. O caso de uso valida os dados e aplica a regra de domínio.
-3. A alteração é gravada imediatamente no SQLite.
-4. Uma operação é adicionada à fila local com `operationId`, entidade, versão e payload.
-5. A interface atualiza por observação do estado local, sem esperar a internet.
-6. Ao detectar conexão, o sincronizador envia a fila para a API.
-7. O servidor responde com a versão canônica.
-8. Em conflito, vence a versão mais recente por entidade no MVP; conflitos colaborativos exigem estratégia posterior por campo.
-9. A operação confirmada é removida da fila.
+## 5. Estratégia de Testes
 
-## 6. Priorização automática
+A suíte de testes é executada com o test runner nativo do Node.js (`node:test` e `node:assert`) sem dependências pesadas de terceiros:
+- `tests/domain/taskValidation.test.ts`: validações de limites, datas, horas e campos obrigatórios.
+- `tests/domain/prioritization.test.ts`: determinismo e coerência da pontuação matemática de prioridade.
+- `tests/domain/taskFiltering.test.ts`: isolamento de filtros por status, prioridade e categorias.
+- `tests/domain/subtasks.test.ts`: ciclo de vida completo de subtarefas e checklists.
+- `tests/domain/kanban.test.ts`: transições de status e particionamento de colunas.
+- `tests/domain/projects.test.ts`: cálculo de métricas de progresso e desvinculação em cascata.
+- `tests/infrastructure/taskRepository.test.ts`: persistência local e CRUD completo.
 
-A ordem sugerida deve ser explicável e determinística no MVP. Uma pontuação inicial pode ser:
-
-$$
-score = 0.45 \times urgencia + 0.30 \times importancia + 0.15 \times energia + 0.10 \times contexto
-$$
-
-- `urgencia`: cresce conforme o prazo se aproxima ou está atrasado.
-- `importancia`: prioridade definida pelo usuário.
-- `energia`: compatibilidade entre esforço da tarefa e energia estimada do usuário.
-- `contexto`: dependências desbloqueadas, projeto atual ou sessão de foco.
-
-A função deve retornar score e fatores usados, para que a sugestão possa ser explicada ao usuário.
-
-## 7. Gamificação como diferencial
-
-A gamificação é uma camada de domínio, não apenas decoração da tela.
-
-- Concluir tarefa gera um `GamificationEvent` idempotente.
-- XP varia por prioridade, esforço e cumprimento do prazo.
-- O nível é calculado por uma tabela de progressão versionada.
-- Sequência diária considera o fuso horário do usuário.
-- Missões são objetivos compostos, como “concluir 3 tarefas”.
-- Medalhas têm critérios verificáveis e não podem ser concedidas duas vezes.
-- Desfazer uma conclusão gera um evento de reversão, evitando XP duplicado.
-
-## 8. Backend futuro
-
-Quando o MVP local estiver estável, o backend Node.js pode ser adicionado com:
-
-- API REST versionada (`/v1/tasks`, `/v1/projects`, `/v1/sync`).
-- Autenticação por JWT e refresh token.
-- PostgreSQL para dados relacionais.
-- Redis ou fila gerenciada para notificações e tarefas assíncronas.
-- Firebase Cloud Messaging para push.
-- Storage compatível com S3 para anexos e backup criptografado.
-- Logs estruturados, validação de payload e controle de permissões por projeto.
-
-## 9. Segurança e qualidade
-
-- Não armazenar tokens em texto puro; usar armazenamento seguro do dispositivo.
-- Validar dados no cliente e novamente no servidor.
-- Aplicar princípio do menor privilégio em colaboração e anexos.
-- Criptografar tráfego com HTTPS e dados sensíveis em repouso.
-- Testar especialmente recorrência, fuso horário, idempotência de XP, fila offline e conflitos.
-- Solicitar permissões Android somente no momento em que o recurso for usado.
-
-## 10. Estrutura sugerida
-
-```text
-src/
-  application/
-    useCases/
-    ports/
-  domain/
-    entities/
-    services/
-    rules/
-  infrastructure/
-    database/
-    repositories/
-    sync/
-    notifications/
-  presentation/
-    components/
-    navigation/
-    screens/
-    theme/
-  store/
-  shared/
-    types/
-    utils/
-```
-
-O `App.tsx` atual é um protótipo visual. A primeira refatoração da Sprint 1 deve mover a lista inicial e as operações de tarefa para `src/domain`, `src/store` e `src/presentation`, preservando a aparência já criada.
+**Total de testes:** 19 testes automatizados com 100% de aprovação.

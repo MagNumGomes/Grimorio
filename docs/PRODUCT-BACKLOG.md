@@ -1,69 +1,89 @@
-# Product Backlog - Grimório
+﻿# 📜 Product Backlog - Grimório
 
-## Visão do produto
+Este documento contém o **Product Backlog Oficial** do projeto Grimório, detalhando as 14 User Stories priorizadas, suas estimativas em Story Points, critérios de aceitação e planejamento de Sprints.
 
-O Grimório é um aplicativo Android de organização pessoal e profissional que transforma tarefas em rituais de progresso. O produto combina planejamento, execução e acompanhamento com uma camada de gamificação arcana: experiência (XP), níveis, sequência diária, missões e recompensas.
+---
 
-## Priorização
+## 1. Visão Geral do Backlog
 
-- **MVP:** entregar criação, organização, execução e feedback básico de tarefas.
-- **Valor central:** o usuário consegue planejar o dia, concluir tarefas e perceber evolução.
-- **Critério de pronto:** a história está implementada, validada em Android e possui tratamento de estados vazios, erro e carregamento quando aplicável.
+| Rank | Prioridade | ID | User Story | Estimativa | Sprint | Status |
+| :---: | :---: | :---: | :--- | :---: | :---: | :---: |
+| **1** | **Alta** | **US01** | Cadastrar, listar, editar e concluir tarefas com atributos básicos (título, prazo, prioridade) para ter o controle central das minhas atividades. | 8 pts | **Sprint 1** | **Concluído** |
+| **2** | **Alta** | **US02** | Criar subtarefas aninhadas e checklists dentro de cada tarefa principal para detalhar e decompor atividades mais complexas. | 5 pts | **Sprint 1** | **Concluído** |
+| **3** | **Alta** | **US03** | Gerenciar tarefas através de um quadro Kanban interativo com colunas de status ("A Fazer", "Em Andamento", "Concluído") e fluxo de transição. | 8 pts | **Sprint 1** | **Concluído** |
+| **4** | **Alta** | **US04** | Agrupar tarefas em projetos e pastas com métricas de progresso visual para organizar múltiplos objetivos simultâneos. | 5 pts | **Sprint 1** | **Concluído** |
+| 5 | Alta | US05 | Configurar regras de recorrência (diária, semanal, personalizada) para automatizar a geração de tarefas repetitivas. | 5 pts | Sprint 2 | Backlog |
+| 6 | Alta | US06 | Sincronização e persistência avançada com motor offline-first robusto e resolução de conflitos. | 8 pts | Sprint 2 | Backlog |
+| 7 | Alta | US07 | Receber notificações agendadas e alertas contextuais por localização (GPS/FCM) para não perder prazos. | 8 pts | Sprint 2 | Backlog |
+| 8 | Média | US08 | Ordenação inteligente baseada em urgência, esforço e nível de energia para saber exatamente qual tarefa priorizar. | 5 pts | Sprint 2 | Backlog |
+| 9 | Média | US09 | Utilizar um modo foco com cronômetro Pomodoro integrado e bloqueio de distrações com gamificação completa de XP. | 5 pts | Sprint 2 | Backlog |
+| 10 | Média | US10 | Anexar arquivos, gravar notas de voz e criar tarefas via linguagem natural/comando de voz. | 8 pts | Sprint 3 | Backlog |
+| 11 | Média | US11 | Visualizar as entregas em um calendário integrado e compartilhar tarefas para permitir o acompanhamento e colaboração. | 8 pts | Sprint 3 | Backlog |
+| 12 | Baixa | US12 | Visualizar relatórios com gráficos SVG de produtividade e análise de atrasos para entender padrões de entrega. | 5 pts | Sprint 3 | Backlog |
+| 13 | Baixa | US13 | Widget na tela inicial do Android para registrar pendências com um toque e manter engajamento. | 5 pts | Sprint 3 | Backlog |
+| 14 | Baixa | US14 | Importar arquivos CSV, exportar cartões de imagem e sincronizar com Google Tasks / agenda nativa. | 8 pts | Sprint 3 | Backlog |
 
-## Backlog priorizado
+**Total do Backlog:** 14 User Stories · 91 Story Points
+**Entregue na Sprint 1:** 4 User Stories · 26 Story Points (100% da meta da Sprint 1)
 
-| ID | História de usuário | Valor | Estimativa | Sprint |
-| --- | --- | --- | ---: | --- |
-| US01 | Como usuário, quero criar uma tarefa com título, descrição, prazo, horário, prioridade, categoria e esforço estimado para registrar o que preciso fazer. | Essencial | 8 | 1 |
-| US02 | Como usuário, quero visualizar minhas tarefas em lista e filtrá-las por status, categoria e prioridade para encontrar rapidamente o que devo executar. | Essencial | 5 | 1 |
-| US03 | Como usuário, quero editar, concluir e arquivar tarefas para manter minha organização atualizada. | Essencial | 5 | 1 |
-| US04 | Como usuário, quero receber uma sugestão de ordem das tarefas baseada em prazo, prioridade e esforço para começar pelo que mais importa. | Alto | 8 | 1 |
-| US05 | Como usuário, quero configurar tarefas recorrentes diárias, semanais, mensais ou personalizadas para não recriar atividades repetitivas. | Alto | 8 | 2 |
-| US06 | Como usuário, quero decompor uma tarefa em subtarefas e checklist para acompanhar projetos complexos passo a passo. | Alto | 8 | 2 |
-| US07 | Como usuário, quero usar um quadro Kanban com as colunas A fazer, Fazendo e Concluído para acompanhar visualmente meu fluxo. | Alto | 8 | 2 |
-| US08 | Como usuário, quero usar um cronômetro Pomodoro associado a uma tarefa para trabalhar em períodos de foco e registrar o tempo investido. | Alto | 5 | 2 |
-| US09 | Como usuário, quero ganhar XP, níveis, medalhas, sequência diária e recompensas ao concluir tarefas para manter minha motivação. | Diferencial | 8 | 2 |
-| US10 | Como usuário, quero consultar um histórico com filtros por período, categoria e prioridade para analisar minha produtividade. | Alto | 5 | 3 |
-| US11 | Como usuário, quero visualizar um calendário e um painel de progresso por projeto ou categoria para planejar e acompanhar minha evolução. | Alto | 8 | 3 |
-| US12 | Como usuário, quero que minhas alterações funcionem offline e sejam sincronizadas quando a conexão voltar para não perder meu trabalho. | Essencial | 13 | 3 |
+---
 
-**Total estimado:** 89 pontos.
+## 2. Detalhamento da Sprint 1 (Rank 1 a 4) - Status: Concluída
 
-## Sprints
+### US01: CRUD de Tarefas Básicas (Rank 1 - 8 pts)
+- **Descrição:** Como usuário, quero cadastrar, listar, editar e concluir tarefas com atributos básicos (título, prazo, prioridade) para ter o controle central das minhas atividades.
+- **Critérios de Aceitação:**
+  1. Cadastro de tarefa com título (obrigatório, até 120 caracteres), descrição opcional, data/hora de vencimento, prioridade (Alta, Média, Baixa), categoria e tempo estimado.
+  2. Validação determinística de formulário impedindo dados inválidos com feedback visual.
+  3. Listagem interativa com filtros rápidos por status (Todas, A Fazer, Em Andamento, Concluídas), categoria e prioridade.
+  4. Conclusão instantânea através de checkbox com atualização de status e registro de `completedAt`.
+  5. Edição completa de todos os atributos e arquivamento/exclusão de tarefas.
+- **Implementação:** Entregue via `TaskRepository`, `HomeScreen`, `TaskCard`, `TaskFormModal` e `FilterBar`.
 
-### Sprint 1 - Fundamentos do grimório
+### US02: Subtarefas Aninhadas e Checklists (Rank 2 - 5 pts)
+- **Descrição:** Como usuário, quero criar subtarefas aninhadas e checklists dentro de cada tarefa principal para detalhar e decompor atividades mais complexas.
+- **Critérios de Aceitação:**
+  1. Criação de múltiplos itens de checklist diretamente no formulário de criação/edição de tarefas.
+  2. Resumo visual de subtarefas no card (`✓ X de Y subtarefas`) com expansão sob demanda.
+  3. Conclusão interativa de subtarefas individuais com persistência imediata no armazenamento offline.
+  4. Métodos dedicados no repositório: `addSubtask`, `toggleSubtask`, `removeSubtask`.
+- **Implementação:** Entregue via modelo `Subtask`, builders em `TaskFormModal` e visualizador interativo em `TaskCard`.
 
-**Objetivo:** criar, organizar e priorizar tarefas do dia.
+### US03: Quadro Kanban Interativo (Rank 3 - 8 pts)
+- **Descrição:** Como usuário, quero gerenciar minhas tarefas através de um quadro Kanban interativo com colunas visuais de status ("A Fazer", "Em Andamento", "Concluído") e transição entre colunas.
+- **Critérios de Aceitação:**
+  1. Visualização em 3 colunas de status: `A Fazer` (`todo`), `Em Andamento` (`in_progress`) e `Concluído` (`done`).
+  2. Contadores dinâmicos de tarefas por coluna.
+  3. Transição direta entre colunas através de ações táteis nos cards (`[Iniciar ›]`, `[‹ A Fazer]`, `[Concluir ✓]`, `[↺ Reabrir]`).
+  4. Filtragem do Kanban por projeto selecionado.
+  5. Layout adaptativo: navegação por abas de colunas em telas móveis e colunas lado a lado em telas amplas/web.
+- **Implementação:** Entregue na view `kanban` de `HomeScreen`, `moveTaskKanban` em `TaskRepository` e `TaskCard`.
 
-- US01, US02, US03 e US04
-- Resultado demonstrável: o usuário cria uma tarefa, encontra-a na lista, altera seu estado e recebe uma ordem sugerida.
-- Critério de sucesso: o fluxo principal de tarefa funciona sem depender de uma API externa.
+### US04: Projetos e Pastas com Métricas de Progresso (Rank 4 - 5 pts)
+- **Descrição:** Como usuário, quero agrupar tarefas em projetos e pastas com métricas de progresso visual para organizar múltiplos objetivos simultâneos.
+- **Critérios de Aceitação:**
+  1. Criação de projetos com nome, descrição, cor de identificação da paleta arcana e ícone simbólico (`◈`, `✦`, `☷`, `◉`, `☾`, etc.).
+  2. Vínculo de tarefas a projetos no formulário ou diretamente pelo card do projeto.
+  3. Barra de progresso visual calculando a porcentagem de conclusão (`completedTasks / totalTasks * 100%`).
+  4. Lista expansível de tarefas de cada projeto com checkbox para conclusão rápida.
+  5. Atalhos rápidos para visualizar as tarefas do projeto no Quadro Kanban ou na Lista principal.
+  6. Exclusão segura de projetos com desvinculação automática das tarefas associadas.
+- **Implementação:** Entregue via `ProjectModal`, view `projects` em `HomeScreen`, `projectService.ts` e `taskRepository.ts`.
 
-### Sprint 2 - Execução e motivação
+---
 
-**Objetivo:** transformar tarefas em um fluxo visual de execução com gamificação forte.
+## 3. Planejamento das Próximas Sprints
 
-- US05, US06, US07, US08 e US09
-- Resultado demonstrável: o usuário organiza tarefas recorrentes e subtarefas, move itens no Kanban, inicia foco e recebe XP/recompensas.
-- Critério de sucesso: concluir uma tarefa atualiza status, XP, nível, sequência e progresso da missão do dia.
+### Sprint 2: Automação, Notificações e Gamificação Completa (31 pts)
+- **US05 (5 pts):** Regras de recorrência (diária, semanal, mensal) e recriação automática de tarefas.
+- **US06 (8 pts):** Sincronização offline e resolução de conflitos via motor de sync.
+- **US07 (8 pts):** Lembretes locais agendados e notificações com alertas de prazo.
+- **US08 (5 pts):** Ordenação inteligente por urgência, esforço e nível de energia.
+- **US09 (5 pts):** Modo Foco Pomodoro com XP arcano completo, níveis e medalhas.
 
-### Sprint 3 - Inteligência operacional e confiabilidade
-
-**Objetivo:** dar visão histórica e garantir continuidade de uso.
-
-- US10, US11 e US12
-- Resultado demonstrável: o usuário consulta seu desempenho, navega pelo calendário e continua trabalhando sem conexão.
-- Critério de sucesso: alterações feitas offline permanecem disponíveis localmente e são sincronizadas após reconexão.
-
-## Definition of Done
-
-- Fluxo feliz e estados de carregamento, vazio e erro implementados.
-- Interface responsiva para Android e acessível por toque.
-- Dados validados no formulário.
-- Testes unitários para regras de XP, recorrência, priorização e sincronização.
-- Teste de integração para criar, concluir e editar uma tarefa.
-- Documentação atualizada e build Android validado.
-
-## Fora do MVP inicial
-
-Colaboração em tempo real, anexos, notificações push, geofencing, comando de voz, widgets Android, integração com Google Tasks, IA generativa, backup em nuvem, relatórios avançados e modo de apresentação ficam como épicos posteriores. Eles dependem de autenticação, backend, permissões nativas, custos de serviços e decisões de privacidade.
+### Sprint 3: Inteligência Operacional, Portabilidade e Relatórios (34 pts)
+- **US10 (8 pts):** Anexos de áudio, notas de voz e criação de rituais via linguagem natural.
+- **US11 (8 pts):** Visualização em calendário integrado e colaboração/compartilhamento.
+- **US12 (5 pts):** Relatórios de produtividade com gráficos SVG e análise de atrasos.
+- **US13 (5 pts):** Widget para a tela inicial do Android.
+- **US14 (8 pts):** Importação/exportação CSV e sincronização com Google Tasks/Google Agenda.

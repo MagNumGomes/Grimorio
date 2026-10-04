@@ -9,7 +9,34 @@ export type TaskCategory =
   | 'Grimório'
   | 'Outros';
 
-export type TaskStatus = 'pending' | 'completed';
+export type TaskStatus =
+  | 'pending'
+  | 'completed'
+  | 'todo'
+  | 'in_progress'
+  | 'done';
+
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface SubtaskInput {
+  title: string;
+  completed?: boolean;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface Task {
   id: string;
@@ -25,6 +52,8 @@ export interface Task {
   createdAt: string; // ISO
   updatedAt: string; // ISO
   completedAt?: string; // ISO
+  projectId?: string;
+  subtasks: Subtask[];
 }
 
 export interface CreateTaskDTO {
@@ -35,6 +64,9 @@ export interface CreateTaskDTO {
   priority: TaskPriority;
   category: TaskCategory;
   estimatedMinutes: number;
+  status?: TaskStatus;
+  projectId?: string;
+  subtasks?: SubtaskInput[];
 }
 
 export interface UpdateTaskDTO {
@@ -47,10 +79,19 @@ export interface UpdateTaskDTO {
   estimatedMinutes?: number;
   status?: TaskStatus;
   archived?: boolean;
+  projectId?: string;
+  subtasks?: SubtaskInput[];
+}
+
+export interface CreateProjectDTO {
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
 }
 
 export interface TaskFilterOptions {
-  status?: 'all' | 'pending' | 'completed';
+  status?: 'all' | 'pending' | 'completed' | 'todo' | 'in_progress' | 'done';
   category?: string;
   priority?: string;
   searchQuery?: string;

@@ -1,4 +1,10 @@
-import type { CreateTaskDTO, UpdateTaskDTO, TaskPriority, TaskCategory } from '../entities/task';
+import type {
+  CreateProjectDTO,
+  CreateTaskDTO,
+  UpdateTaskDTO,
+  TaskPriority,
+  TaskCategory,
+} from '../entities/task';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -40,6 +46,33 @@ export function isValidDateFormat(dateStr: string): boolean {
 
 export function isValidTimeFormat(timeStr: string): boolean {
   return TIME_REGEX.test(timeStr);
+}
+
+export function validateCreateProjectInput(input: Partial<CreateProjectDTO>): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!input.name || input.name.trim().length === 0) {
+    errors.name = 'O nome do projeto é obrigatório.';
+  } else if (input.name.trim().length > 60) {
+    errors.name = 'O nome do projeto deve ter no máximo 60 caracteres.';
+  }
+
+  if (input.description && input.description.trim().length > 300) {
+    errors.description = 'A descrição do projeto deve ter no máximo 300 caracteres.';
+  }
+
+  if (input.color && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(input.color.trim())) {
+    errors.color = 'A cor do projeto deve ser um valor hexadecimal válido.';
+  }
+
+  if (input.icon && input.icon.trim().length > 2) {
+    errors.icon = 'O ícone do projeto deve ser um símbolo curto.';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
 }
 
 export function validateCreateTaskInput(input: Partial<CreateTaskDTO>): ValidationResult {

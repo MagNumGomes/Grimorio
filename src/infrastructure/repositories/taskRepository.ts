@@ -1,9 +1,43 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Task, CreateTaskDTO, UpdateTaskDTO } from '../../domain/entities/task';
-import { validateCreateTaskInput, validateUpdateTaskInput } from '../../domain/services/taskValidation';
+import type {
+  Task,
+  CreateTaskDTO,
+  UpdateTaskDTO,
+  Project,
+  CreateProjectDTO,
+  TaskStatus,
+  SubtaskInput,
+} from '../../domain/entities/task';
+import { validateCreateProjectInput, validateCreateTaskInput, validateUpdateTaskInput } from '../../domain/services/taskValidation';
 import { getTodayDateString, formatToDateString } from '../../shared/utils/dateUtils';
 
 const STORAGE_KEY = '@grimorio_tasks_v1';
+const PROJECTS_KEY = '@grimorio_projects_v1';
+
+const normalizeTaskStatus = (status?: TaskStatus | string): TaskStatus => {
+  switch (status) {
+    case 'todo':
+    case 'pending':
+      return 'pending';
+    case 'in_progress':
+      return 'in_progress';
+    case 'done':
+    case 'completed':
+      return 'completed';
+    default:
+      return 'pending';
+  }
+};
+
+const isDoneStatus = (status?: TaskStatus | string): boolean =>
+  status === 'completed' || status === 'done';
+
+const normalizeSubtaskInput = (subtask: SubtaskInput) => ({
+  id: `subtask-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  title: subtask.title.trim(),
+  completed: Boolean(subtask.completed),
+  createdAt: new Date().toISOString(),
+});
 
 export function getInitialSeedTasks(): Task[] {
   const today = getTodayDateString();
@@ -29,6 +63,7 @@ export function getInitialSeedTasks(): Task[] {
       archived: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      subtasks: [],
     },
     {
       id: 'task-2',
@@ -44,6 +79,7 @@ export function getInitialSeedTasks(): Task[] {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
+      subtasks: [],
     },
     {
       id: 'task-3',
@@ -58,6 +94,7 @@ export function getInitialSeedTasks(): Task[] {
       archived: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      subtasks: [],
     },
     {
       id: 'task-4',
@@ -72,6 +109,7 @@ export function getInitialSeedTasks(): Task[] {
       archived: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      subtasks: [],
     },
   ];
 }
@@ -82,10 +120,17 @@ export interface ITaskRepository {
   createTask(dto: CreateTaskDTO): Promise<Task>;
   updateTask(id: string, dto: UpdateTaskDTO): Promise<Task>;
   toggleTaskStatus(id: string): Promise<Task>;
+  addSubtask(taskId: string, title: string): Promise<Task>;
+  toggleSubtask(taskId: string, subtaskId: string): Promise<Task>;
+  removeSubtask(taskId: string, subtaskId: string): Promise<Task>;
+  moveTaskKanban(taskId: string, newStatus: 'todo' | 'in_progress' | 'done'): Promise<Task>;
   archiveTask(id: string): Promise<Task>;
   restoreTask(id: string): Promise<Task>;
   deleteTask(id: string): Promise<boolean>;
   resetToInitial(): Promise<Task[]>;
+  getProjects(): Promise<Project[]>;
+  createProject(dto: CreateProjectDTO): Promise<Project>;
+  deleteProject(id: string): Promise<boolean>;
 }
 
 export interface IStorage {
@@ -109,6 +154,7 @@ function getDefaultStorage(): IStorage | null {
 
 export class TaskRepository implements ITaskRepository {
   private memoryCache: Task[] | null = null;
+  private projectCache: Project[] | null = null;
   private storage: IStorage | null;
 
   constructor(storage?: IStorage | null) {
@@ -126,7 +172,11 @@ export class TaskRepository implements ITaskRepository {
         if (stored) {
           const parsed: Task[] = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            this.memoryCache = parsed;
+            this.memoryCache = parsed.map((task) => ({
+              ...task,
+              subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+              status: normalizeTaskStatus(task.status),
+            }));
             return [...this.memoryCache];
           }
         }
@@ -151,6 +201,75 @@ export class TaskRepository implements ITaskRepository {
     }
   }
 
+  async getProjects(): Promise<Project[]> {
+    if (this.projectCache !== null) {
+      return [...this.projectCache];
+    }
+
+    if (this.storage) {
+      try {
+        const stored = await this.storage.getItem(PROJECTS_KEY);
+        if (stored) {
+          const parsed: Project[] = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            this.projectCache = parsed;
+            return [...this.projectCache];
+          }
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    return [];
+  }
+
+  async createProject(dto: CreateProjectDTO): Promise<Project> {
+    const validation = validateCreateProjectInput(dto);
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0];
+      throw new Error(firstError || 'Dados do projeto inválidos.');
+    }
+
+    const current = await this.getProjects();
+    const project: Project = {
+      id: `project-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: dto.name.trim(),
+      description: dto.description ? dto.description.trim() : undefined,
+      color: dto.color ? dto.color.trim() : undefined,
+      icon: dto.icon ? dto.icon.trim() : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updated = [project, ...current];
+    this.projectCache = updated;
+    if (this.storage) {
+      await this.storage.setItem(PROJECTS_KEY, JSON.stringify(updated));
+    }
+    return project;
+  }
+
+  async deleteProject(id: string): Promise<boolean> {
+    const currentProjects = await this.getProjects();
+    const filteredProjects = currentProjects.filter((project) => project.id !== id);
+    if (filteredProjects.length === currentProjects.length) {
+      return false;
+    }
+
+    this.projectCache = filteredProjects;
+    if (this.storage) {
+      await this.storage.setItem(PROJECTS_KEY, JSON.stringify(filteredProjects));
+    }
+
+    const tasks = await this.getTasks();
+    const updatedTasks = tasks.map((task) =>
+      task.projectId === id ? { ...task, projectId: undefined } : task,
+    );
+    await this.saveTasks(updatedTasks);
+    return true;
+  }
+
   async createTask(dto: CreateTaskDTO): Promise<Task> {
     const validation = validateCreateTaskInput(dto);
     if (!validation.isValid) {
@@ -159,6 +278,7 @@ export class TaskRepository implements ITaskRepository {
     }
 
     const current = await this.getTasks();
+    const normalizedStatus = normalizeTaskStatus(dto.status);
     const newTask: Task = {
       id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       title: dto.title.trim(),
@@ -168,10 +288,13 @@ export class TaskRepository implements ITaskRepository {
       priority: dto.priority,
       category: dto.category,
       estimatedMinutes: dto.estimatedMinutes,
-      status: 'pending',
+      status: normalizedStatus,
       archived: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      projectId: dto.projectId,
+      subtasks: (dto.subtasks ?? []).map(normalizeSubtaskInput),
+      completedAt: isDoneStatus(normalizedStatus) ? new Date().toISOString() : undefined,
     };
 
     const updated = [newTask, ...current];
@@ -193,6 +316,11 @@ export class TaskRepository implements ITaskRepository {
     }
 
     const existing = current[index];
+    const nextStatus = dto.status !== undefined ? normalizeTaskStatus(dto.status) : existing.status;
+    const nextSubtasks = dto.subtasks
+      ? dto.subtasks.map(normalizeSubtaskInput)
+      : existing.subtasks;
+
     const updatedTask: Task = {
       ...existing,
       title: dto.title !== undefined ? dto.title.trim() : existing.title,
@@ -202,13 +330,15 @@ export class TaskRepository implements ITaskRepository {
       priority: dto.priority ?? existing.priority,
       category: dto.category ?? existing.category,
       estimatedMinutes: dto.estimatedMinutes ?? existing.estimatedMinutes,
-      status: dto.status ?? existing.status,
+      status: nextStatus,
       archived: dto.archived ?? existing.archived,
+      projectId: dto.projectId ?? existing.projectId,
+      subtasks: nextSubtasks,
       updatedAt: new Date().toISOString(),
       completedAt:
-        dto.status === 'completed' && existing.status !== 'completed'
+        isDoneStatus(nextStatus) && !isDoneStatus(existing.status)
           ? new Date().toISOString()
-          : dto.status === 'pending'
+          : !isDoneStatus(nextStatus)
           ? undefined
           : existing.completedAt,
     };
@@ -225,8 +355,57 @@ export class TaskRepository implements ITaskRepository {
       throw new Error(`Tarefa com ID ${id} não encontrada.`);
     }
 
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    const newStatus = isDoneStatus(task.status) ? 'pending' : 'completed';
     return this.updateTask(id, { status: newStatus });
+  }
+
+  async addSubtask(taskId: string, title: string): Promise<Task> {
+    if (!title || !title.trim()) {
+      throw new Error('O título da subtarefa é obrigatório.');
+    }
+
+    const tasks = await this.getTasks();
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      throw new Error(`Tarefa com ID ${taskId} não encontrada.`);
+    }
+
+    const newSubtask = normalizeSubtaskInput({ title, completed: false });
+    return this.updateTask(taskId, {
+      subtasks: [...task.subtasks, newSubtask],
+    });
+  }
+
+  async toggleSubtask(taskId: string, subtaskId: string): Promise<Task> {
+    const tasks = await this.getTasks();
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      throw new Error(`Tarefa com ID ${taskId} não encontrada.`);
+    }
+
+    const nextSubtasks = task.subtasks.map((subtask) =>
+      subtask.id === subtaskId ? { ...subtask, completed: !subtask.completed } : subtask,
+    );
+    return this.updateTask(taskId, { subtasks: nextSubtasks });
+  }
+
+  async removeSubtask(taskId: string, subtaskId: string): Promise<Task> {
+    const tasks = await this.getTasks();
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      throw new Error(`Tarefa com ID ${taskId} não encontrada.`);
+    }
+
+    const nextSubtasks = task.subtasks.filter((subtask) => subtask.id !== subtaskId);
+    return this.updateTask(taskId, { subtasks: nextSubtasks });
+  }
+
+  async moveTaskKanban(taskId: string, newStatus: 'todo' | 'in_progress' | 'done'): Promise<Task> {
+    const validStatuses = ['todo', 'in_progress', 'done'];
+    if (!validStatuses.includes(newStatus)) {
+      throw new Error(`Status inválido para Kanban: ${newStatus}`);
+    }
+    return this.updateTask(taskId, { status: newStatus as TaskStatus });
   }
 
   async archiveTask(id: string): Promise<Task> {

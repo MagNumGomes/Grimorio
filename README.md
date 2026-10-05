@@ -43,7 +43,7 @@ Os recursos abaixo descrevem a implementação atual, sem depender da divisão d
 
 ## 🧭 Product Backlog
 
-O backlog organiza a evolução do Grimório em histórias priorizadas. As estimativas estão em Story Points; os números de Sprint indicam o planejamento atual, que pode ser refinado.
+O backlog organiza a evolução do Grimório em histórias priorizadas e está limitado a três sprints. As estimativas são Story Points iniciais, não compromissos de entrega. As funcionalidades das Sprints 2 e 3 são planejadas e não devem ser entendidas como já implementadas.
 
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 | :---: | :---: | :--- | :---: | :---: |
@@ -51,16 +51,31 @@ O backlog organiza a evolução do Grimório em histórias priorizadas. As estim
 | 2 | Alta | Como usuário, desejo decompor tarefas em itens de checklist que possam ser concluídos individualmente, para acompanhar os passos de atividades maiores. | 5 | 1 |
 | 3 | Alta | Como usuário, desejo visualizar e mover tarefas entre etapas em um quadro Kanban, para acompanhar o andamento do meu trabalho. | 8 | 1 |
 | 4 | Alta | Como usuário, desejo agrupar tarefas em projetos e pastas e acompanhar seu progresso, para organizar objetivos maiores. | 5 | 1 |
-| 5 | Alta | Como usuário, desejo configurar tarefas recorrentes, para automatizar a organização de atividades repetitivas. | 5 | 2 |
-| 6 | Alta | Como usuário, desejo sincronizar e fazer backup dos meus dados com resolução de conflitos, para acessá-los em diferentes dispositivos com continuidade. | 8 | 2 |
-| 7 | Alta | Como usuário, desejo receber lembretes e alertas de prazo, para não esquecer atividades importantes. | 8 | 2 |
-| 8 | Média | Como usuário, desejo receber sugestões de prioridade que considerem urgência, esforço e nível de energia, para escolher melhor a próxima tarefa. | 5 | 2 |
-| 9 | Média | Como usuário, desejo usar sessões de foco com cronômetro Pomodoro e acompanhar meu progresso, para manter a concentração. | 5 | 2 |
-| 10 | Média | Como usuário, desejo anexar arquivos e notas de voz e criar tarefas por voz ou linguagem natural, para registrar informações com facilidade. | 8 | 3 |
-| 11 | Média | Como usuário, desejo consultar tarefas em um calendário e compartilhá-las, para visualizar compromissos e colaborar quando necessário. | 8 | 3 |
-| 12 | Baixa | Como usuário, desejo consultar relatórios de produtividade e atrasos, para compreender meus hábitos e meu progresso. | 5 | 3 |
-| 13 | Baixa | Como usuário, desejo acessar e registrar tarefas por um widget Android, para capturar atividades rapidamente. | 5 | 3 |
-| 14 | Baixa | Como usuário, desejo importar e exportar tarefas e integrá-las a serviços de agenda, para transportar meus dados entre ferramentas. | 8 | 3 |
+| 5 | Alta | Como usuário, desejo configurar tarefas recorrentes com periodicidades e exceções flexíveis, para automatizar atividades repetitivas sem perder controle das ocorrências. | 13 | 2 |
+| 6 | Alta | Como usuário, desejo trabalhar offline e sincronizar e fazer backup criptografado dos meus dados com resolução de conflitos, para mantê-los disponíveis e protegidos. | 16 | 2 |
+| 7 | Alta | Como usuário, desejo receber múltiplos lembretes e notificações contextuais, para agir no momento adequado e não esquecer atividades importantes. | 16 | 2 |
+| 8 | Média | Como usuário, desejo receber sugestões de prioridade que considerem urgência, esforço, energia e contexto, para escolher melhor a próxima tarefa. | 10 | 2 |
+| 9 | Média | Como usuário, desejo usar modos de foco com cronômetro Pomodoro, pausas e acompanhamento de progresso, para manter a concentração. | 13 | 2 |
+| 10 | Alta | Como usuário, desejo organizar tarefas com notas formatadas e tags, classificá-las por urgência e importância e pesquisar seus conteúdos, para localizar e priorizar atividades. | 8 | 2 |
+| 11 | Média | Como usuário, desejo consultar meu histórico de tarefas e registrar tempo e dificuldade, para compreender hábitos e melhorar minhas estimativas. | 13 | 2 |
+| 12 | Baixa | Como usuário, desejo criar e reutilizar modelos de tarefas, para iniciar atividades frequentes rapidamente. | 3 | 2 |
+| 13 | Média | Como usuário, desejo mover tarefas entre pastas e arquivar ou restaurar itens, para manter a organização sem perder registros. | 5 | 2 |
+| 14 | Baixa | Como usuário, desejo personalizar temas, layouts e densidade da interface, para adequá-la às minhas preferências. | 5 | 2 |
+| 15 | Média | Como usuário, desejo definir metas diárias e de longo prazo e receber pontos e insígnias, para transformar objetivos em ações e acompanhar meu progresso. | 13 | 2 |
+| 16 | Média | Como usuário, desejo desfazer e refazer ações importantes, para corrigir enganos sem perder trabalho. | 5 | 2 |
+| 17 | Média | Como usuário, desejo anexar documentos e áudio, gravar notas de voz e criar tarefas por voz ou linguagem natural, para registrar informações com facilidade. | 24 | 3 |
+| 18 | Média | Como usuário, desejo consultar tarefas em um calendário e compartilhá-las com permissões, para visualizar compromissos e colaborar quando necessário. | 21 | 3 |
+| 19 | Baixa | Como usuário, desejo consultar relatórios de produtividade, progresso e atrasos, para compreender meus hábitos e identificar melhorias. | 13 | 3 |
+| 20 | Baixa | Como usuário, desejo acessar e registrar tarefas por um widget Android, para capturar atividades rapidamente. | 5 | 3 |
+| 21 | Baixa | Como usuário, desejo importar e exportar tarefas em lote e integrá-las a serviços de agenda, para transportar meus dados entre ferramentas. | 16 | 3 |
+| 22 | Alta | Como usuário, desejo definir dependências entre tarefas e acompanhar checklists atribuídos, para organizar trabalhos relacionados. | 8 | 3 |
+| 23 | Média | Como usuário, desejo planejar meu dia considerando tarefas, agenda e prazos flexíveis, para evitar conflitos e distribuir o trabalho. | 8 | 3 |
+| 24 | Média | Como usuário, desejo prever minha carga de trabalho, ordenar prioridades relativas e receber sugestões de delegação, para planejar de forma realista. | 8 | 3 |
+| 25 | Baixa | Como usuário, desejo compartilhar uma lista de tarefas como imagem, para comunicar meu planejamento. | 3 | 3 |
+| 26 | Baixa | Como usuário, desejo apresentar minhas tarefas em formato de slides, para conduzir reuniões de planejamento. | 5 | 3 |
+| 27 | Média | Como usuário, desejo mover cartões Kanban por arrastar e soltar, para atualizar o estado das tarefas diretamente no quadro. | 3 | 3 |
+
+**Total planejado:** 260 Story Points em 27 histórias — Sprint 1: 26 pts (US01–US04); Sprint 2: 120 pts; Sprint 3: 114 pts. As estimativas das Sprints 2 e 3 devem ser validadas individualmente; priorize histórias se o volume exceder o que uma pessoa consegue entregar. As histórias US01–US04 estão implementadas; US08 está parcialmente implementada; as demais são planejadas. O [Product Backlog detalhado](docs/PRODUCT-BACKLOG.md) contém critérios de aceitação, estado e referências técnicas.
 
 ---
 

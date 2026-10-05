@@ -1,868 +1,177 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Modal,
-  Platform,
-} from 'react-native';
-import { Task, CreateTaskDTO, UpdateTaskDTO } from '../../domain/entities/task';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, useWindowDimensions } from 'react-native';
+import type { Task, TaskStatus, CreateTaskDTO, UpdateTaskDTO, Project } from '../../domain/entities/task';
+import { calculateProjectProgress } from '../../domain/services/projectService';
 import { useTasks } from '../hooks/useTasks';
 import { TaskCard } from '../components/TaskCard';
 import { TaskFormModal } from '../components/TaskFormModal';
+import { ProjectModal } from '../components/ProjectModal';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 import { ArchivedTasksModal } from '../components/ArchivedTasksModal';
+import { getHeaderDateBr, getTodayDateString } from '../../shared/utils/dateUtils';
 import { colors } from '../theme/colors';
-import { getHeaderDateBr } from '../../shared/utils/dateUtils';
+
+const COLUMNS: { status: TaskStatus; label: string }[] = [
+  { status: 'todo', label: 'A Fazer' }, { status: 'in_progress', label: 'Em Andamento' }, { status: 'done', label: 'Concluído' },
+];
 
 export default function HomeScreen() {
-  const {
-    tasks,
-    activeTasks,
-    archivedTasks,
-    processedTasks,
-    loading,
-    error,
-    statusFilter,
-    setStatusFilter,
-    categoryFilter,
-    setCategoryFilter,
-    priorityFilter,
-    setPriorityFilter,
-    sortOrder,
-    setSortOrder,
-    hasActiveFilters,
-    clearFilters,
-    createTask,
-    updateTask,
-    toggleStatus,
-    archiveTask,
-    restoreTask,
-    deleteTask,
-    completedCount,
-    totalActiveCount,
-    earnedXp,
-  } = useTasks();
-
-  // Navigation & Modals
-  const [activeNav, setActiveNav] = useState<'Hoje' | 'Rituais' | 'Foco' | 'Arquivo'>('Hoje');
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const data = useTasks();
+  const { width } = useWindowDimensions();
+  const [view, setView] = useState<'list' | 'kanban' | 'projects'>('list');
+  const [column, setColumn] = useState<TaskStatus>('todo');
+  const [formOpen, setFormOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
-  const [infoModalMessage, setInfoModalMessage] = useState<string | null>(null);
+  const [initialProjectId, setInitialProjectId] = useState<string>();
+  const [projectOpen, setProjectOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  // Feedback toast message
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
+  const run = async (operation: () => Promise<unknown>, success = 'Alteração salva no grimório.') => {
+    setActionError(null);
+    try { await operation(); setMessage(success); }
+    catch (error) { setMessage(null); setActionError(error instanceof Error ? error.message : 'Não foi possível salvar. Tente novamente.'); }
   };
-
-  useEffect(() => {
-    if (toastMessage) {
-      const timer = setTimeout(() => setToastMessage(null), 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [toastMessage]);
-
-  const handleOpenCreate = () => {
-    setTaskToEdit(null);
-    setIsFormOpen(true);
+  const openCreate = (projectId?: string) => { setTaskToEdit(null); setInitialProjectId(projectId); setFormOpen(true); };
+  const openEdit = (task: Task) => { setTaskToEdit(task); setInitialProjectId(undefined); setFormOpen(true); };
+  const submitTask = async (dto: CreateTaskDTO | UpdateTaskDTO) => {
+    if (taskToEdit) await data.updateTask(taskToEdit.id, dto);
+    else await data.createTask(dto as CreateTaskDTO);
+    setMessage('Ritual salvo no grimório.');
   };
-
-  const handleOpenEdit = (task: Task) => {
-    setTaskToEdit(task);
-    setIsFormOpen(true);
+  const showProject = (projectId: string, target: 'list' | 'kanban') => {
+    data.clearFilters(); data.setProjectFilter(projectId); setView(target);
   };
+  const renderTask = (task: Task) => (
+    <TaskCard task={task} projectName={data.projects.find(p => p.id === task.projectId)?.name}
+      onToggleStatus={id => void run(() => data.toggleStatus(id))}
+      onToggleSubtask={(id, subId) => void run(() => data.toggleSubtask(id, subId))}
+      onMove={(id, status) => void run(() => data.moveTask(id, status))}
+      onEdit={openEdit} onArchive={id => void run(() => data.archiveTask(id), 'Ritual arquivado.')} />
+  );
+  const todayTasks = data.activeTasks.filter(task => task.dueDate === getTodayDateString());
+  const todayCompleted = todayTasks.filter(task => task.status === 'done').length;
+  const todayPercent = todayTasks.length ? Math.round(todayCompleted / todayTasks.length * 100) : 0;
 
-  const handleFormSubmit = async (dto: CreateTaskDTO | UpdateTaskDTO) => {
-    if (taskToEdit) {
-      await updateTask(taskToEdit.id, dto);
-      showToast('✦ Ritual atualizado com sucesso no grimório.');
-    } else {
-      await createTask(dto as CreateTaskDTO);
-      showToast('✦ Novo ritual inscrito com sucesso no grimório.');
-    }
-  };
-
-  const handleToggle = async (id: string) => {
-    const task = tasks.find((t) => t.id === id);
-    const newStatus = task?.status === 'completed' ? 'reaberto' : 'concluído';
-    await toggleStatus(id);
-    showToast(`✦ Ritual ${newStatus}!`);
-  };
-
-  const handleArchive = async (id: string) => {
-    await archiveTask(id);
-    showToast('✦ Ritual guardado no Arquivo Sagrado.');
-  };
-
-  const handleRestore = async (id: string) => {
-    await restoreTask(id);
-    showToast('✦ Ritual restaurado para a lista ativa.');
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteTask(id);
-    showToast('✦ Ritual removido definitivamente.');
-  };
-
-  const handleNavPress = (tab: 'Hoje' | 'Rituais' | 'Foco' | 'Arquivo') => {
-    setActiveNav(tab);
-    if (tab === 'Hoje') {
-      setStatusFilter('pending');
-    } else if (tab === 'Rituais') {
-      setStatusFilter('all');
-    } else if (tab === 'Arquivo') {
-      setIsArchiveModalOpen(true);
-    } else if (tab === 'Foco') {
-      setInfoModalMessage(
-        'O Modo Foco com cronômetro Pomodoro integrado está planejado para a Sprint 2 (US08). No momento, organize e priorize seus rituais na Sprint 1!'
-      );
-    }
-  };
-
-  const getEmptyStateType = () => {
-    if (activeTasks.length === 0) {
-      return 'no-tasks';
-    }
-    if (hasActiveFilters && processedTasks.length === 0) {
-      return 'filtered-empty';
-    }
-    if (statusFilter === 'completed' && processedTasks.length === 0) {
-      return 'no-completed';
-    }
-    return 'no-tasks';
-  };
-
-  const completionPercent =
-    totalActiveCount > 0 ? Math.round((completedCount / totalActiveCount) * 100) : 0;
-
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-
-      {toastMessage && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>{toastMessage}</Text>
-        </View>
-      )}
-
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.eyebrow}>{getHeaderDateBr()}</Text>
-            <Text style={styles.title}>Grimório de Rituais</Text>
-            <Text style={styles.subtitle}>
-              Seu próximo passo aguarda no grimório.
-            </Text>
-          </View>
-          <Pressable
-            style={styles.avatar}
-            onPress={() =>
-              setInfoModalMessage(
-                'Perfil Arcano: Gamificação completa com missões e medalhas virá na Sprint 2 (US09).'
-              )
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Ver perfil do grimório"
-          >
-            <Text style={styles.avatarText}>JG</Text>
-          </Pressable>
-        </View>
-
-        {/* Streak / Motivation Card with Sprint 2 disclaimer */}
-        <View style={styles.streakCard}>
-          <View style={styles.moon}>
-            <Text style={styles.moonText}>☾</Text>
-          </View>
-          <View style={styles.streakCopy}>
-            <View style={styles.streakLabelRow}>
-              <Text style={styles.streakLabel}>SEQUÊNCIA DIÁRIA</Text>
-              <Text style={styles.demoTag}>Sprint 2 Demo</Text>
-            </View>
-            <Text style={styles.streakValue}>
-              7 dias <Text style={styles.streakAccent}>em ascensão</Text>
-            </Text>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${Math.min(100, Math.max(15, completionPercent))}%` },
-                ]}
-              />
-            </View>
-          </View>
-          <View style={styles.streakXpWrap}>
-            <Text style={styles.streakNumber}>
-              +{earnedXp}
-              <Text style={styles.xpSmall}> XP</Text>
-            </Text>
-            <Text style={styles.xpDetailLabel}>obtidos hoje</Text>
-          </View>
-        </View>
-
-        {/* Mission Card reflecting real completed tasks */}
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionTitle}>Missão do dia</Text>
-            <Text style={styles.sectionHint}>
-              {completedCount} de {totalActiveCount} rituais concluídos
-            </Text>
-          </View>
-          <Text style={styles.percent}>{completionPercent}%</Text>
-        </View>
-
-        <View style={styles.missionCard}>
-          <View style={styles.missionIcon}>
-            <Text style={styles.iconText}>✦</Text>
-          </View>
-          <View style={styles.missionCopy}>
-            <Text style={styles.missionTitle}>
-              {completedCount >= 3
-                ? 'Chamas acesas com êxito!'
-                : 'Acenda as chamas do conhecimento'}
-            </Text>
-            <Text style={styles.missionHint}>
-              {completedCount >= 3
-                ? 'Meta diária básica de 3 rituais concluída hoje.'
-                : `Complete mais ${Math.max(1, 3 - completedCount)} ritual(is) hoje para consolidar o dia.`}
-            </Text>
-          </View>
-          <View style={styles.reward}>
-            <Text style={styles.rewardValue}>+{earnedXp + 50}</Text>
-            <Text style={styles.rewardLabel}>XP</Text>
-          </View>
-        </View>
-
-        {/* Section Heading with Action */}
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionTitle}>Seus rituais</Text>
-            <Text style={styles.sectionHint}>
-              {processedTasks.length} {processedTasks.length === 1 ? 'ritual' : 'rituais'} listados
-            </Text>
-          </View>
-          <Pressable
-            style={styles.newButton}
-            onPress={handleOpenCreate}
-            accessibilityRole="button"
-            accessibilityLabel="Criar nova tarefa no grimório"
-          >
-            <Text style={styles.newButtonText}>+ Novo Ritual</Text>
-          </Pressable>
-        </View>
-
-        {/* FilterBar for US02 & US04 */}
-        <FilterBar
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          priorityFilter={priorityFilter}
-          onPriorityChange={setPriorityFilter}
-          sortOrder={sortOrder}
-          onSortChange={setSortOrder}
-          onClearFilters={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-          totalResultsCount={processedTasks.length}
-        />
-
-        {/* Task List */}
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={colors.plum} />
-            <Text style={styles.loadingText}>Consultando o grimório...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorTitle}>Erro ao consultar tarefas</Text>
-            <Text style={styles.errorSubtitle}>{error}</Text>
-          </View>
-        ) : processedTasks.length === 0 ? (
-          <EmptyState
-            type={getEmptyStateType()}
-            onAction={hasActiveFilters ? clearFilters : handleOpenCreate}
-          />
-        ) : (
-          processedTasks.map((item, index) => (
-            <TaskCard
-              key={item.task.id}
-              task={item.task}
-              prioritizedTask={sortOrder === 'suggested' ? item : undefined}
-              rank={sortOrder === 'suggested' ? index + 1 : undefined}
-              onToggleStatus={handleToggle}
-              onEdit={handleOpenEdit}
-              onArchive={handleArchive}
-            />
-          ))
-        )}
-
-        {/* Circle of Power (Progression Banner) */}
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionTitle}>Seu círculo de poder</Text>
-            <Text style={styles.sectionHint}>
-              Nível 4 · Aprendiz da Aurora (Sprint 2 Demo)
-            </Text>
-          </View>
-          <Pressable
-            onPress={() =>
-              setInfoModalMessage(
-                'O sistema de progressão por níveis e recompensas completas faz parte da Sprint 2 (US09).'
-              )
-            }
-          >
-            <Text style={styles.seeAll}>Ver círculo</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.levelCard}>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelNumber}>IV</Text>
-          </View>
-          <View style={styles.levelCopy}>
-            <Text style={styles.levelTitle}>Aprendiz da Aurora</Text>
-            <Text style={styles.levelHint}>
-              {earnedXp + 340} / 500 XP para o próximo nível
-            </Text>
-            <View style={styles.levelTrack}>
-              <View
-                style={[
-                  styles.levelFill,
-                  {
-                    width: `${Math.min(
-                      100,
-                      Math.max(10, ((earnedXp + 340) / 500) * 100)
-                    )}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-          <Text style={styles.levelArrow}>›</Text>
-        </View>
-      </ScrollView>
-
-      {/* Task Creation & Edition Modal (US01 & US03) */}
-      <TaskFormModal
-        visible={isFormOpen}
-        taskToEdit={taskToEdit}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-      />
-
-      {/* Sacred Archive Modal (US03) */}
-      <ArchivedTasksModal
-        visible={isArchiveModalOpen}
-        archivedTasks={archivedTasks}
-        onClose={() => setIsArchiveModalOpen(false)}
-        onRestore={handleRestore}
-        onDelete={handleDelete}
-      />
-
-      {/* Informational Modal */}
-      <Modal
-        visible={Boolean(infoModalMessage)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setInfoModalMessage(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.infoModalCard}>
-            <Text style={styles.infoModalTitle}>Grimório Sagrado</Text>
-            <Text style={styles.infoModalBody}>{infoModalMessage}</Text>
-            <Pressable
-              style={styles.infoModalBtn}
-              onPress={() => setInfoModalMessage(null)}
-            >
-              <Text style={styles.infoModalBtnText}>Entendido</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        {[
-          { icon: '⌂', label: 'Hoje', key: 'Hoje' as const },
-          { icon: '◈', label: 'Rituais', key: 'Rituais' as const },
-          { icon: '◉', label: 'Foco', key: 'Foco' as const },
-          {
-            icon: '☷',
-            label: 'Arquivo',
-            key: 'Arquivo' as const,
-            badge: archivedTasks.length,
-          },
-        ].map((item) => {
-          const isActive = activeNav === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => handleNavPress(item.key)}
-              style={styles.navItem}
-              accessibilityRole="button"
-              accessibilityLabel={`Ir para ${item.label}`}
-            >
-              <View style={styles.navIconWrap}>
-                <Text style={[styles.navIcon, isActive && styles.navActive]}>
-                  {item.icon}
-                </Text>
-                {Boolean(item.badge && item.badge > 0) && (
-                  <View style={styles.navBadge}>
-                    <Text style={styles.navBadgeText}>{item.badge}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.navLabel, isActive && styles.navActive]}>
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+  const header = (
+    <View>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>{getHeaderDateBr()}</Text>
+        <Text style={styles.title}>Grimório de Rituais</Text>
+        <Text style={styles.subtitle}>Um passo de cada vez, um propósito em cada ritual.</Text>
       </View>
+      <View style={styles.summary}>
+        <Text style={styles.summarySymbol}>☾</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.summaryTitle}>Seus rituais de hoje</Text>
+          <Text style={styles.summaryText}>{todayCompleted} de {todayTasks.length} concluídos · {todayPercent}%</Text>
+          <View style={styles.track}><View style={[styles.fill, { width: `${todayPercent}%` }]} /></View>
+        </View>
+      </View>
+      <View style={styles.row}>
+        {([{ key: 'list', label: '☷ Lista' }, { key: 'kanban', label: '⎇ Kanban' }, { key: 'projects', label: '◈ Projetos' }] as const).map(tab => (
+          <Pressable key={tab.key} accessibilityRole="tab" accessibilityState={{ selected: view === tab.key }} style={[styles.tab, view === tab.key && styles.selected]} onPress={() => { setView(tab.key); if (tab.key === 'kanban') data.setStatusFilter('all'); }}>
+            <Text style={[styles.tabText, view === tab.key && styles.selectedText]}>{tab.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={[styles.row, { justifyContent: 'space-between', marginVertical: 16 }]}>
+        <Text style={styles.heading}>{view === 'projects' ? 'Projetos e pastas' : 'Seus rituais'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={view === 'projects' ? 'Criar projeto' : 'Criar nova tarefa no grimório'} style={styles.button} disabled={!!data.error || data.loading} onPress={() => view === 'projects' ? setProjectOpen(true) : openCreate(data.projectFilter === 'all' ? undefined : data.projectFilter)}>
+          <Text style={styles.buttonText}>{view === 'projects' ? '+ Projeto' : '+ Ritual'}</Text>
+        </Pressable>
+      </View>
+      {(actionError || message) && <Pressable accessibilityRole="button" accessibilityLabel="Fechar mensagem" onPress={() => { setActionError(null); setMessage(null); }} style={[styles.notice, actionError ? styles.error : undefined]}><Text accessibilityRole="alert" style={styles.text}>{actionError ?? message} ×</Text></Pressable>}
+      {view !== 'projects' && <>
+        <FilterBar statusFilter={data.statusFilter} onStatusChange={data.setStatusFilter} categoryFilter={data.categoryFilter} onCategoryChange={data.setCategoryFilter} priorityFilter={data.priorityFilter} onPriorityChange={data.setPriorityFilter} projectFilter={data.projectFilter} onProjectChange={data.setProjectFilter} projects={data.projects} sortOrder={data.sortOrder} onSortChange={data.setSortOrder} onClearFilters={data.clearFilters} hasActiveFilters={data.hasActiveFilters} totalResultsCount={data.processedTasks.length} />
+        <Text style={styles.subtitle}>{data.processedTasks.length} rituais listados{data.todayOnly ? ' · vencimento hoje' : ''}</Text>
+      </>}
+      {data.loading && <ActivityIndicator color={colors.plum} style={{ margin: 20 }} />}
+      {data.error && <View style={[styles.notice, styles.error]}><Text style={styles.text}>{data.error}</Text><Pressable accessibilityRole="button" onPress={() => void data.reload()}><Text style={styles.link}>Tentar novamente</Text></Pressable></View>}
     </View>
   );
+
+  const projectCard = (project: Project) => {
+    const progress = calculateProjectProgress(project, data.tasks);
+    const expanded = expandedProject === project.id;
+    const tasks = data.activeTasks.filter(t => t.projectId === project.id);
+    return <View style={[styles.project, { borderLeftColor: project.color ?? colors.gold }]}>
+      <Text style={styles.eyebrow}>{project.folder || 'Sem pasta'}</Text>
+      <Text style={styles.heading}>{project.icon || '◈'} {project.name}</Text>
+      {!!project.description && <Text style={styles.subtitle}>{project.description}</Text>}
+      <Text style={styles.subtitle}>{progress.completedTasks}/{progress.totalTasks} concluídos · {progress.progressPercent}%</Text>
+      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progress.progressPercent }} style={styles.projectTrack}><View style={[styles.fill, { width: `${progress.progressPercent}%`, backgroundColor: project.color ?? colors.gold }]} /></View>
+      <View style={styles.row}>
+        <Pressable accessibilityRole="button" onPress={() => setExpandedProject(expanded ? null : project.id)}><Text style={styles.link}>{expanded ? '− Ocultar' : '+ Tarefas'}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => openCreate(project.id)}><Text style={styles.link}>+ Ritual</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => showProject(project.id, 'list')}><Text style={styles.link}>Lista</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => showProject(project.id, 'kanban')}><Text style={styles.link}>Kanban</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Excluir projeto ${project.name}`} onPress={() => void run(() => data.deleteProject(project.id), 'Projeto excluído; tarefas preservadas e desvinculadas.')}><Text style={[styles.link, { color: colors.crimson }]}>Excluir</Text></Pressable>
+      </View>
+      {expanded && tasks.map(task => <Pressable key={task.id} accessibilityRole="checkbox" accessibilityState={{ checked: task.status === 'done' }} accessibilityLabel={task.title} onPress={() => void run(() => data.toggleStatus(task.id))}><Text style={styles.projectTask}>{task.status === 'done' ? '✓' : '○'} {task.title}</Text></Pressable>)}
+      {expanded && tasks.length === 0 && <Text style={styles.subtitle}>Este projeto ainda não tem rituais.</Text>}
+    </View>;
+  };
+
+  const empty = !data.loading && !data.error ? <EmptyState type={data.hasActiveFilters ? 'filtered-empty' : 'no-tasks'} onAction={data.hasActiveFilters ? data.clearFilters : () => openCreate()} /> : null;
+  return <View style={styles.container}>
+    <StatusBar style="dark" />
+    {view === 'list' && <FlatList data={data.processedTasks} keyExtractor={item => item.task.id} contentContainerStyle={styles.content} ListHeaderComponent={header} ListEmptyComponent={empty}
+      renderItem={({ item, index }) => <TaskCard task={item.task} projectName={data.projects.find(p => p.id === item.task.projectId)?.name} prioritizedTask={data.sortOrder === 'suggested' ? item : undefined} rank={index + 1} onToggleStatus={id => void run(() => data.toggleStatus(id))} onToggleSubtask={(id, subId) => void run(() => data.toggleSubtask(id, subId))} onMove={(id, status) => void run(() => data.moveTask(id, status))} onEdit={openEdit} onArchive={id => void run(() => data.archiveTask(id))} />} />}
+    {view === 'projects' && <FlatList data={[...data.projects].sort((a, b) => (a.folder ?? '').localeCompare(b.folder ?? '') || a.name.localeCompare(b.name))} keyExtractor={p => p.id} contentContainerStyle={styles.content} ListHeaderComponent={header} renderItem={({ item }) => projectCard(item)} ListEmptyComponent={!data.loading && !data.error ? <View style={styles.project}><Text style={styles.heading}>Seu próximo objetivo começa aqui.</Text><Text style={styles.subtitle}>Crie um projeto e organize-o em uma pasta.</Text></View> : null} />}
+    {view === 'kanban' && <FlatList data={[0]} keyExtractor={String} contentContainerStyle={styles.content} ListHeaderComponent={header} renderItem={() => <View>
+      {width < 900 && <View style={styles.row}>{COLUMNS.map(c => <Pressable key={c.status} accessibilityRole="tab" accessibilityState={{ selected: column === c.status }} onPress={() => setColumn(c.status)} style={[styles.tab, column === c.status && styles.selected]}><Text style={[styles.tabText, column === c.status && styles.selectedText]}>{c.label} ({data.processedTasks.filter(t => t.task.status === c.status).length})</Text></Pressable>)}</View>}
+      <View style={styles.board}>{COLUMNS.filter(c => width >= 900 || c.status === column).map(c => <View key={c.status} style={styles.column}>
+        <Text style={styles.heading}>{c.label} · {data.processedTasks.filter(t => t.task.status === c.status).length}</Text>
+        {data.processedTasks.filter(t => t.task.status === c.status).map(({ task }) => <View key={task.id}>{renderTask(task)}</View>)}
+        {data.processedTasks.every(t => t.task.status !== c.status) && <Text style={styles.subtitle}>Nenhum ritual nesta coluna.</Text>}
+      </View>)}</View>
+    </View>} />}
+    <View style={styles.navigation}>
+      <Pressable accessibilityRole="button" onPress={() => { data.clearFilters(); data.setTodayOnly(true); setView('list'); }}><Text style={styles.link}>⌂ Hoje</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { data.clearFilters(); setView('list'); }}><Text style={styles.link}>☷ Rituais</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => setView('projects')}><Text style={styles.link}>◈ Projetos</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => setArchiveOpen(true)}><Text style={styles.link}>Arquivo ({data.archivedTasks.length})</Text></Pressable>
+    </View>
+    <TaskFormModal visible={formOpen} taskToEdit={taskToEdit} projects={data.projects} initialProjectId={initialProjectId} onClose={() => setFormOpen(false)} onSubmit={submitTask} />
+    <ProjectModal visible={projectOpen} onClose={() => setProjectOpen(false)} onSubmit={async dto => { await data.createProject(dto); setMessage('Projeto criado.'); }} />
+    <ArchivedTasksModal visible={archiveOpen} archivedTasks={data.archivedTasks} onClose={() => setArchiveOpen(false)} onRestore={async id => { await data.restoreTask(id); }} onDelete={async id => { await data.deleteTask(id); }} />
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.paper,
-  },
-  toast: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    backgroundColor: colors.plum,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    zIndex: 999,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  toastText: {
-    color: colors.goldLight,
-    fontWeight: '700',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  content: {
-    padding: 22,
-    paddingTop: 56,
-    paddingBottom: 120,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 22,
-  },
-  headerInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  title: {
-    color: colors.ink,
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 13,
-    marginTop: 4,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.plum,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.gold,
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  avatarText: {
-    color: colors.goldLight,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  streakCard: {
-    backgroundColor: colors.plum,
-    borderRadius: 14,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  moon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.plumLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  moonText: {
-    color: colors.goldLight,
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  streakCopy: {
-    flex: 1,
-  },
-  streakLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  streakLabel: {
-    color: '#bdb0be',
-    fontSize: 9,
-    letterSpacing: 1.2,
-    fontWeight: '800',
-  },
-  demoTag: {
-    backgroundColor: 'rgba(219, 182, 110, 0.25)',
-    color: colors.goldLight,
-    fontSize: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-    fontWeight: '700',
-  },
-  streakValue: {
-    color: '#fff8e9',
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  streakAccent: {
-    color: '#dcb66e',
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  progressTrack: {
-    height: 5,
-    backgroundColor: '#66566a',
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  progressFill: {
-    height: 5,
-    backgroundColor: '#d7a943',
-    borderRadius: 4,
-  },
-  streakXpWrap: {
-    alignItems: 'flex-end',
-    marginLeft: 10,
-  },
-  streakNumber: {
-    color: '#eacb8c',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  xpSmall: {
-    fontSize: 9,
-  },
-  xpDetailLabel: {
-    color: '#bdb0be',
-    fontSize: 8,
-    marginTop: 2,
-  },
-  sectionHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  sectionHint: {
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 3,
-  },
-  percent: {
-    color: colors.gold,
-    fontWeight: '800',
-    fontSize: 16,
-  },
-  seeAll: {
-    color: colors.gold,
-    fontSize: 12,
-    fontWeight: '800',
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  newButton: {
-    backgroundColor: colors.plum,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  newButtonText: {
-    color: colors.goldLight,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  missionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardPaper,
-    borderWidth: 1,
-    borderColor: colors.lineHighlight,
-    borderRadius: 12,
-    padding: 13,
-    marginBottom: 24,
-  },
-  missionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f2dfb7',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 11,
-  },
-  iconText: {
-    color: colors.gold,
-    fontSize: 18,
-  },
-  missionCopy: {
-    flex: 1,
-  },
-  missionTitle: {
-    fontWeight: '800',
-    color: colors.ink,
-    fontSize: 13,
-  },
-  missionHint: {
-    fontSize: 10,
-    color: colors.muted,
-    marginTop: 3,
-  },
-  reward: {
-    alignItems: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: colors.lineHighlight,
-    paddingLeft: 12,
-  },
-  rewardValue: {
-    color: colors.gold,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  rewardLabel: {
-    color: colors.muted,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  loadingWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  errorBox: {
-    backgroundColor: colors.crimsonLight,
-    borderWidth: 1,
-    borderColor: colors.crimson,
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 16,
-  },
-  errorTitle: {
-    color: colors.crimson,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  errorSubtitle: {
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 4,
-  },
-  levelCard: {
-    marginTop: 4,
-    backgroundColor: '#ebe5da',
-    borderRadius: 12,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  levelBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.plum,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  levelNumber: {
-    color: colors.goldLight,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  levelCopy: {
-    flex: 1,
-  },
-  levelTitle: {
-    color: colors.ink,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  levelHint: {
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 3,
-  },
-  levelTrack: {
-    height: 4,
-    backgroundColor: '#d2c8b8',
-    borderRadius: 3,
-    marginTop: 8,
-  },
-  levelFill: {
-    height: 4,
-    backgroundColor: colors.gold,
-    borderRadius: 3,
-  },
-  levelArrow: {
-    color: colors.muted,
-    fontSize: 24,
-    marginLeft: 10,
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 74,
-    backgroundColor: colors.cardPaper,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    width: 70,
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  navIconWrap: {
-    position: 'relative',
-    height: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navIcon: {
-    fontSize: 20,
-    color: '#aa9f91',
-  },
-  navBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -10,
-    backgroundColor: colors.plum,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  navBadgeText: {
-    color: colors.goldLight,
-    fontSize: 8,
-    fontWeight: '800',
-  },
-  navLabel: {
-    fontSize: 10,
-    color: '#aa9f91',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  navActive: {
-    color: colors.plum,
-    fontWeight: '900',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  infoModalCard: {
-    backgroundColor: colors.paper,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.gold,
-    padding: 20,
-    width: '100%',
-    maxWidth: 360,
-  },
-  infoModalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  infoModalBody: {
-    fontSize: 12,
-    color: colors.muted,
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  infoModalBtn: {
-    backgroundColor: colors.plum,
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  infoModalBtnText: {
-    color: colors.goldLight,
-    fontWeight: '800',
-    fontSize: 12,
-  },
+  container: { flex: 1, backgroundColor: colors.paper },
+  content: { padding: 20, paddingTop: 48, paddingBottom: 24, width: '100%', maxWidth: 1440, alignSelf: 'center' },
+  header: { marginBottom: 24 },
+  eyebrow: { fontSize: 10, letterSpacing: 1.5, fontWeight: '800', color: colors.goldDark, marginBottom: 6 },
+  title: { fontSize: 30, fontWeight: '800', color: colors.plum },
+  subtitle: { fontSize: 12, color: colors.muted, lineHeight: 20, marginBottom: 10 },
+  heading: { fontSize: 17, fontWeight: '800', color: colors.ink, marginBottom: 8 },
+  summary: { backgroundColor: colors.plum, padding: 20, borderRadius: 14, flexDirection: 'row', gap: 16, alignItems: 'center', marginBottom: 24 },
+  summarySymbol: { color: colors.goldLight, fontSize: 38 },
+  summaryTitle: { color: colors.goldLight, fontSize: 16, fontWeight: '700' },
+  summaryText: { color: colors.cardPaper, fontSize: 12, marginTop: 4 },
+  track: { height: 5, borderRadius: 4, backgroundColor: colors.plumLight, marginTop: 12, overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: colors.gold },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
+  tab: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, backgroundColor: colors.line },
+  selected: { backgroundColor: colors.plum },
+  tabText: { color: colors.plum, fontWeight: '700', fontSize: 12 },
+  selectedText: { color: colors.goldLight },
+  button: { backgroundColor: colors.plum, padding: 12, borderRadius: 8 },
+  buttonText: { color: colors.goldLight, fontWeight: '800' },
+  notice: { backgroundColor: colors.sageLight, padding: 14, borderRadius: 8, marginBottom: 12 },
+  error: { backgroundColor: colors.crimsonLight, borderWidth: 1, borderColor: colors.crimson },
+  text: { color: colors.ink, fontSize: 13 },
+  link: { color: colors.plum, fontWeight: '700', fontSize: 12, paddingVertical: 10 },
+  project: { padding: 18, marginBottom: 16, borderRadius: 12, backgroundColor: colors.cardPaper, borderWidth: 1, borderColor: colors.line, borderLeftWidth: 4 },
+  projectTrack: { height: 7, backgroundColor: colors.line, borderRadius: 4, overflow: 'hidden', marginVertical: 10 },
+  projectTask: { color: colors.ink, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line },
+  board: { flexDirection: 'row', gap: 16, marginTop: 14 },
+  column: { flex: 1, minWidth: 0, backgroundColor: colors.line, padding: 10, borderRadius: 10 },
+  navigation: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', padding: 10, paddingBottom: 20, backgroundColor: colors.cardPaper, borderTopWidth: 1, borderTopColor: colors.line },
 });

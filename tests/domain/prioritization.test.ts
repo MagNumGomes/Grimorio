@@ -6,7 +6,7 @@ import {
   suggestTaskOrder,
 } from '../../src/domain/services/prioritization';
 
-const baseDate = new Date('2026-09-27T10:00:00Z');
+const baseDate = new Date(2026, 8, 27, 10, 0);
 
 function createSampleTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -18,7 +18,8 @@ function createSampleTask(overrides: Partial<Task> = {}): Task {
     priority: 'Média',
     category: 'Estudos',
     estimatedMinutes: 30,
-    status: 'pending',
+    status: 'todo',
+    subtasks: [],
     archived: false,
     createdAt: '2026-09-27T08:00:00Z',
     updatedAt: '2026-09-27T08:00:00Z',
@@ -78,10 +79,7 @@ test('Prioritization - Closer due date increases urgency score', () => {
     scoreToday.score > scoreNextWeek.score,
     'Task due today should score higher than task due in weeks'
   );
-  assert.ok(
-    scoreNextWeek.score <= scoreNoDue.score || scoreNextWeek.score >= scoreNoDue.score,
-    'Scores are well-defined'
-  );
+  assert.strictEqual(scoreNextWeek.score, scoreNoDue.score, 'Distant deadlines and no deadline have the same urgency weight');
 
   const overdueUrgency = scoreOverdue.factors.find((f) => f.key === 'urgency');
   assert.strictEqual(overdueUrgency?.points, 45);
@@ -112,7 +110,7 @@ test('Prioritization - Suggest task order orders pending before completed and hi
     priority: 'Baixa',
     estimatedMinutes: 120,
     dueDate: '2026-10-10',
-    status: 'pending',
+    status: 'todo',
   });
   const task2 = createSampleTask({
     id: '2',
@@ -120,7 +118,7 @@ test('Prioritization - Suggest task order orders pending before completed and hi
     priority: 'Alta',
     estimatedMinutes: 15,
     dueDate: '2026-09-27',
-    status: 'pending',
+    status: 'in_progress',
   });
   const task3 = createSampleTask({
     id: '3',
@@ -128,7 +126,7 @@ test('Prioritization - Suggest task order orders pending before completed and hi
     priority: 'Alta',
     estimatedMinutes: 15,
     dueDate: '2026-09-27',
-    status: 'completed',
+    status: 'done',
   });
 
   const ordered = suggestTaskOrder([task1, task3, task2], baseDate);

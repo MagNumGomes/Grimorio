@@ -9,12 +9,6 @@ export function getTodayDateString(): string {
   return formatToDateString(new Date());
 }
 
-export function formatToTimeString(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
 export function parseDateTime(dueDate?: string, dueTime?: string): Date | null {
   if (!dueDate) return null;
   const [yearStr, monthStr, dayStr] = dueDate.split('-');

@@ -1,79 +1,25 @@
 import test from 'node:test';
-import assert from 'node:assert';
+import assert from 'node:assert/strict';
 import type { Task } from '../../src/domain/entities/task';
+import { filterTasks } from '../../src/domain/services/taskFiltering';
 
 function makeTask(id: string, overrides: Partial<Task> = {}): Task {
-  return {
-    id,
-    title: `Ritual ${id}`,
-    description: '',
-    category: 'Estudos',
-    priority: 'Média',
-    estimatedMinutes: 30,
-    status: 'pending',
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  };
+  return { id, title: `Ritual ${id}`, description: '', category: 'Estudos', priority: 'Média', estimatedMinutes: 30, status: 'todo', archived: false, subtasks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...overrides };
 }
-
-function filterTasks(
-  tasks: Task[],
-  options: {
-    status?: 'all' | 'pending' | 'completed';
-    category?: string;
-    priority?: string;
-    includeArchived?: boolean;
-  }
-): Task[] {
-  return tasks.filter((task) => {
-    if (!options.includeArchived && task.archived) return false;
-    if (options.status === 'pending' && task.status !== 'pending') return false;
-    if (options.status === 'completed' && task.status !== 'completed') return false;
-    if (options.category && options.category !== 'all' && task.category !== options.category) return false;
-    if (options.priority && options.priority !== 'all' && task.priority !== options.priority) return false;
-    return true;
-  });
-}
-
-test('Task Filtering - US02: Filters by status, category, priority, and archives isolation', () => {
-  const dataset: Task[] = [
-    makeTask('1', { status: 'pending', category: 'Estudos', priority: 'Alta' }),
-    makeTask('2', { status: 'completed', category: 'Estudos', priority: 'Média' }),
-    makeTask('3', { status: 'pending', category: 'Trabalho', priority: 'Alta' }),
-    makeTask('4', { status: 'pending', category: 'Pessoal', priority: 'Baixa' }),
-    makeTask('5', { status: 'pending', category: 'Estudos', priority: 'Alta', archived: true }),
+test('Production filters combine status, project, priority, category, today and archive isolation', () => {
+  const tasks = [
+    makeTask('1', { status: 'todo', priority: 'Alta', projectId: 'p', dueDate: '2026-10-04' }),
+    makeTask('2', { status: 'done', projectId: 'p' }),
+    makeTask('3', { status: 'in_progress', category: 'Trabalho', priority: 'Alta' }),
+    makeTask('4', { status: 'todo', category: 'Pessoal', priority: 'Baixa' }),
+    makeTask('5', { status: 'done', archived: true }),
   ];
-
-  const activeOnly = filterTasks(dataset, {});
-  assert.strictEqual(activeOnly.length, 4);
-  assert.ok(!activeOnly.some((t) => t.archived), 'Archived tasks must never leak into active view');
-
-  const pendingOnly = filterTasks(dataset, { status: 'pending' });
-  assert.strictEqual(pendingOnly.length, 3);
-  assert.ok(pendingOnly.every((t) => t.status === 'pending'));
-
-  const completedOnly = filterTasks(dataset, { status: 'completed' });
-  assert.strictEqual(completedOnly.length, 1);
-  assert.strictEqual(completedOnly[0].id, '2');
-
-  const estudosOnly = filterTasks(dataset, { category: 'Estudos' });
-  assert.strictEqual(estudosOnly.length, 2);
-  assert.ok(estudosOnly.every((t) => t.category === 'Estudos'));
-
-  const altaOnly = filterTasks(dataset, { priority: 'Alta' });
-  assert.strictEqual(altaOnly.length, 2);
-  assert.ok(altaOnly.every((t) => t.priority === 'Alta'));
-
-  const combined = filterTasks(dataset, {
-    status: 'pending',
-    category: 'Estudos',
-    priority: 'Alta',
-  });
-  assert.strictEqual(combined.length, 1);
-  assert.strictEqual(combined[0].id, '1');
-
-  const reset = filterTasks(dataset, { status: 'all', category: 'all', priority: 'all' });
-  assert.strictEqual(reset.length, 4);
+  const ids = (items: Task[]) => items.map(t => t.id);
+  assert.deepEqual(ids(filterTasks(tasks, { status: 'done' })), ['2']);
+  assert.deepEqual(ids(filterTasks(tasks, { status: 'todo' })), ['1', '4']);
+  assert.deepEqual(ids(filterTasks(tasks, { status: 'in_progress' })), ['3']);
+  assert.deepEqual(ids(filterTasks(tasks, { projectId: 'p' })), ['1', '2']);
+  assert.deepEqual(ids(filterTasks(tasks, { category: 'Estudos', priority: 'Alta', projectId: 'p', status: 'todo' })), ['1']);
+  assert.deepEqual(ids(filterTasks(tasks, { dueDate: '2026-10-04' })), ['1']);
+  assert.deepEqual(ids(filterTasks(tasks, { category: 'all', priority: 'all', projectId: 'all', status: 'all' })), ['1', '2', '3', '4']);
 });

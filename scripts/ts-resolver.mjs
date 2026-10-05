@@ -16,3 +16,8 @@ export async function resolve(specifier, context, nextResolve) {
   }
   return nextResolve(specifier, context);
 }
+
+// Node 22 supports explicit TypeScript module format; avoid reparsing warnings.
+export async function load(url, context, nextLoad) {
+  return nextLoad(url, url.endsWith('.ts') ? { ...context, format: 'module-typescript' } : context);
+}

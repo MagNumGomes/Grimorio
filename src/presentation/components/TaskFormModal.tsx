@@ -16,6 +16,8 @@ import {
   TaskCategory,
   CreateTaskDTO,
   UpdateTaskDTO,
+  Project,
+  SubtaskInput,
 } from '../../domain/entities/task';
 import {
   VALID_PRIORITIES,
@@ -30,6 +32,8 @@ import {
 import { colors } from '../theme/colors';
 
 interface TaskFormModalProps {
+  projects?: Project[];
+  initialProjectId?: string;
   visible: boolean;
   taskToEdit?: Task | null;
   onClose: () => void;
@@ -39,6 +43,8 @@ interface TaskFormModalProps {
 const EFFORT_PRESETS = [15, 30, 45, 60, 90, 120];
 
 export function TaskFormModal({
+  projects = [],
+  initialProjectId,
   visible,
   taskToEdit,
   onClose,
@@ -47,6 +53,9 @@ export function TaskFormModal({
   const isEditing = Boolean(taskToEdit);
 
   const [title, setTitle] = useState('');
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [subtasks, setSubtasks] = useState<SubtaskInput[]>([]);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('');
@@ -61,6 +70,9 @@ export function TaskFormModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    setProjectId(taskToEdit?.projectId ?? initialProjectId ?? null);
+    setSubtasks(taskToEdit?.subtasks.map(s => ({ ...s })) ?? []);
+    setSubtaskTitle('');
     if (taskToEdit) {
       setTitle(taskToEdit.title);
       setDescription(taskToEdit.description || '');
@@ -89,11 +101,12 @@ export function TaskFormModal({
     }
     setErrors({});
     setGeneralError(null);
-  }, [taskToEdit, visible]);
+  }, [taskToEdit, visible, initialProjectId]);
 
   const setQuickDate = (daysAhead: number | null) => {
     if (daysAhead === null) {
       setDueDate('');
+      setDueTime('');
       return;
     }
     const d = new Date();
@@ -142,11 +155,13 @@ export function TaskFormModal({
 
     const minutes = isCustomEffort ? parseInt(customEffort, 10) : estimatedMinutes;
 
-    const payload: CreateTaskDTO = {
+    const payload: CreateTaskDTO | UpdateTaskDTO = {
       title: title.trim(),
       description: description.trim(),
-      dueDate: dueDate.trim() || undefined,
-      dueTime: dueTime.trim() || undefined,
+      dueDate: dueDate.trim(),
+      dueTime: dueTime.trim(),
+      projectId: projectId ?? (isEditing ? null : undefined),
+      subtasks: subtaskTitle.trim() ? [...subtasks, { title: subtaskTitle.trim(), completed: false }] : subtasks,
       priority,
       category,
       estimatedMinutes: minutes,
@@ -154,7 +169,7 @@ export function TaskFormModal({
 
     const validation = isEditing
       ? validateUpdateTaskInput(payload)
-      : validateCreateTaskInput(payload);
+      : validateCreateTaskInput(payload as CreateTaskDTO);
 
     if (!validation.isValid) {
       setErrors(validation.errors);
@@ -406,6 +421,29 @@ export function TaskFormModal({
                 </View>
               </View>
 
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Projeto</Text>
+                <View style={styles.effortRow}>
+                  {[{ id: '', name: 'Sem projeto' }, ...projects].map(project => (
+                    <Pressable key={project.id} accessibilityRole="button" onPress={() => setProjectId(project.id || null)} style={[styles.effortPill, (projectId ?? '') === project.id && styles.effortPillActive]}>
+                      <Text style={[styles.effortPillText, (projectId ?? '') === project.id && styles.effortPillTextActive]}>{project.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Checklist</Text>
+                {subtasks.map((subtask, index) => (
+                  <View key={subtask.id ?? `new-${index}`} style={styles.dateTimeRow}>
+                    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: !!subtask.completed }} accessibilityLabel={`Concluir ${subtask.title}`} onPress={() => setSubtasks(items => items.map((s, i) => i === index ? { ...s, completed: !s.completed } : s))}><Text style={styles.label}>{subtask.completed ? '✓' : '○'}</Text></Pressable>
+                    <TextInput accessibilityLabel={`Título da subtarefa ${index + 1}`} style={[styles.input, { flex: 1 }]} maxLength={120} value={subtask.title} onChangeText={value => setSubtasks(items => items.map((s, i) => i === index ? { ...s, title: value } : s))} />
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${subtask.title}`} onPress={() => setSubtasks(items => items.filter((_, i) => i !== index))}><Text style={styles.label}>×</Text></Pressable>
+                  </View>
+                ))}
+                <TextInput accessibilityLabel="Nova subtarefa" placeholder="Nova subtarefa" placeholderTextColor={colors.muted} value={subtaskTitle} maxLength={120} style={styles.input} onChangeText={setSubtaskTitle} />
+                <Pressable accessibilityRole="button" disabled={!subtaskTitle.trim()} onPress={() => { setSubtasks(items => [...items, { title: subtaskTitle.trim(), completed: false }]); setSubtaskTitle(''); }}><Text style={styles.label}>+ Adicionar subtarefa</Text></Pressable>
+                {errors.subtasks && <Text style={styles.fieldErrorText}>{errors.subtasks}</Text>}
+              </View>
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>
                   Esforço Estimado (minutos) <Text style={styles.requiredMark}>*</Text>
@@ -673,6 +711,7 @@ const styles = StyleSheet.create({
   },
   quickDateRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
     marginBottom: 8,
   },

@@ -24,7 +24,7 @@ test('TaskRepository - Lifecycle: CRUD, toggle, archive, restore, delete', async
   assert.strictEqual(created.priority, 'Alta');
   assert.strictEqual(created.category, 'Grimório');
   assert.strictEqual(created.estimatedMinutes, 45);
-  assert.strictEqual(created.status, 'pending');
+  assert.strictEqual(created.status, 'todo');
   assert.strictEqual(created.archived, false);
   assert.ok(created.createdAt);
 
@@ -54,11 +54,11 @@ test('TaskRepository - Lifecycle: CRUD, toggle, archive, restore, delete', async
   assert.strictEqual(updated.estimatedMinutes, 60);
 
   const completedTask = await repo.toggleTaskStatus(created.id);
-  assert.strictEqual(completedTask.status, 'completed');
+  assert.strictEqual(completedTask.status, 'done');
   assert.ok(completedTask.completedAt);
 
   const reopenedTask = await repo.toggleTaskStatus(created.id);
-  assert.strictEqual(reopenedTask.status, 'pending');
+  assert.strictEqual(reopenedTask.status, 'todo');
   assert.strictEqual(reopenedTask.completedAt, undefined);
 
   const archived = await repo.archiveTask(created.id);

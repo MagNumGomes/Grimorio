@@ -1,81 +1,169 @@
-﻿# 📜 Grimório
+![Banner do Grimório — organizador pessoal offline-first](assets/banner.svg)
 
-## Visão do Produto
+# 📖 Grimório
 
-O **Grimório** é um aplicativo móvel e multiplataforma de organização pessoal offline-first que transforma tarefas cotidianas em rituais de progresso. O produto combina planejamento estruturado, execução visual e acompanhamento por objetivos, envolto em uma estética arcana refinada (pergaminho, ameixa profunda, dourado envelhecido e verde-sálvia) sem poluição visual ou emojis coloridos de sistema.
+> **Um espaço pessoal para planejar, acompanhar e concluir o que importa — dos afazeres do dia a objetivos maiores.**
 
----
-
-## ✦ Product Backlog Oficial
-
-| Rank | Prioridade | ID | User Story | Estimativa | Sprint | Status |
-| :---: | :---: | :---: | :--- | :---: | :---: | :---: |
-| **1** | **Alta** | **US01** | Cadastrar, listar, editar e concluir tarefas com atributos básicos (título, prazo, prioridade) para ter o controle central das minhas atividades. | 8 pts | **Sprint 1** | **Concluído** |
-| **2** | **Alta** | **US02** | Criar subtarefas aninhadas e checklists dentro de cada tarefa principal para detalhar e decompor atividades mais complexas. | 5 pts | **Sprint 1** | **Concluído** |
-| **3** | **Alta** | **US03** | Gerenciar tarefas através de um quadro Kanban interativo com colunas de status ("A Fazer", "Em Andamento", "Concluído") e fluxo de transição. | 8 pts | **Sprint 1** | **Concluído** |
-| **4** | **Alta** | **US04** | Agrupar tarefas em projetos e pastas com métricas de progresso visual para organizar múltiplos objetivos simultâneos. | 5 pts | **Sprint 1** | **Concluído** |
-| 5 | Alta | US05 | Configurar regras de recorrência (diária, semanal, personalizada) para automatizar a geração de tarefas repetitivas. | 5 pts | Sprint 2 | Backlog |
-| 6 | Alta | US06 | Sincronização e persistência avançada com motor offline-first robusto e resolução de conflitos. | 8 pts | Sprint 2 | Backlog |
-| 7 | Alta | US07 | Receber notificações agendadas e alertas contextuais por localização (GPS/FCM) para não perder prazos. | 8 pts | Sprint 2 | Backlog |
-| 8 | Média | US08 | Ordenação inteligente baseada em urgência, esforço e nível de energia para saber exatamente qual tarefa priorizar. | 5 pts | Sprint 2 | Backlog |
-| 9 | Média | US09 | Utilizar um modo foco com cronômetro Pomodoro integrado e bloqueio de distrações com gamificação completa de XP. | 5 pts | Sprint 2 | Backlog |
-| 10 | Média | US10 | Anexar arquivos, gravar notas de voz e criar tarefas via linguagem natural/comando de voz. | 8 pts | Sprint 3 | Backlog |
-| 11 | Média | US11 | Visualizar as entregas em um calendário integrado e compartilhar tarefas para permitir o acompanhamento e colaboração. | 8 pts | Sprint 3 | Backlog |
-| 12 | Baixa | US12 | Visualizar relatórios com gráficos SVG de produtividade e análise de atrasos para entender padrões de entrega. | 5 pts | Sprint 3 | Backlog |
-| 13 | Baixa | US13 | Widget na tela inicial do Android para registrar pendências com um toque e manter engajamento. | 5 pts | Sprint 3 | Backlog |
-| 14 | Baixa | US14 | Importar arquivos CSV, exportar cartões de imagem e sincronizar com Google Tasks / agenda nativa. | 8 pts | Sprint 3 | Backlog |
+O **Grimório** é um organizador pessoal para web e dispositivos móveis. Reúne tarefas, checklists, projetos e diferentes formas de acompanhar o progresso em uma experiência com identidade visual arcana. Seu desenvolvimento busca equilibrar organização cotidiana, foco, autonomia e uma experiência simples de usar.
 
 ---
 
-## ✦ Sprints e Entregas
+## 📑 Índice
 
-### 🟢 Sprint 1 - Fundamentos e Fluxo Visual (26 pts) · **CONCLUÍDA**
-**Objetivo:** criar, decompor, organizar em fluxo visual e agrupar tarefas do dia por projetos.
-- **US01 (8 pts):** Cadastro, edição, listagem, filtros, conclusão e exclusão/arquivo de tarefas.
-- **US02 (5 pts):** Subtarefas aninhadas e checklists com progresso visual e marcação interativa.
-- **US03 (8 pts):** Quadro Kanban interativo com 3 colunas (`A Fazer`, `Em Andamento`, `Concluído`) e transição direta entre colunas.
-- **US04 (5 pts):** Agrupamento por Projetos e Pastas com barras de progresso visual (`% concluído`) e contadores.
-- **Resultado Entregue:** 100% das 4 histórias implementadas com persistência offline (`AsyncStorage`), sem dependência de APIs externas e 19 testes automatizados aprovados.
-
-### 🟡 Sprint 2 - Automação, Notificações e Gamificação (31 pts) · **PLANEJADA**
-**Objetivo:** automatizar rotinas, garantir alertas pontuais e introduzir ciclo completo de gamificação.
-- US05 (Recorrência de tarefas), US06 (Sincronização avançada), US07 (Notificações locais/remotas), US08 (Priorização inteligente avançada), US09 (Modo Foco Pomodoro com XP e medalhas).
-
-### ⚪ Sprint 3 - Inteligência Operacional e Portabilidade (34 pts) · **PLANEJADA**
-**Objetivo:** fornecer visão temporal expandida, entrada multimodal e relatórios analíticos.
-- US10 (Áudio/Voz), US11 (Calendário integrado), US12 (Relatórios SVG), US13 (Widgets Android), US14 (Importação/Exportação CSV e Google Tasks).
+- [Visão do Produto](#-visão-do-produto)
+- [O que está disponível](#-o-que-está-disponível)
+- [Product Backlog](#-product-backlog)
+- [Estrutura do Projeto e Arquitetura](#-estrutura-do-projeto-e-arquitetura)
+- [Tecnologias Utilizadas](#-tecnologias-utilizadas)
+- [Como Instalar, Executar, Usar e Testar o Projeto](#-como-instalar-executar-usar-e-testar-o-projeto)
+- [Documentação](#-documentação)
 
 ---
 
-## ✦ Funcionalidades da Sprint 1 em Destaque
+## 🔮 Visão do Produto
 
-1. **Visão em Três Modos:** Alternância instantânea via abas superiores ou navegação inferior:
-   - **`☷ Lista`**: Visão completa com filtros rápidos (Status, Categoria, Prioridade, Projeto), ordenação e priorização arcana.
-   - **`⎇ Quadro Kanban`**: 3 colunas de execução com botões táteis nos cards (`[Iniciar ›]`, `[‹ A Fazer]`, `[Concluir ✓]`, `[↺ Reabrir]`).
-   - **`◈ Projetos`**: Cards com identidade de cor, ícones simbólicos, barra de progresso visual e lista expansível de atividades.
-2. **Subtarefas e Checklists:** Decomposição de tarefas complexas em itens com contadores (`✓ X de Y subtarefas`) e marcação interativa.
-3. **Estética Arcana Limpa:** Paleta em tons terrosos e nobres (`#f6f1e8`, `#403243`, `#c38b32`, `#778b72`) utilizando exclusivamente tipografia e glifos monocromáticos (`✦`, `☾`, `◈`, `◉`, `✓`, `›`), eliminando emojis coloridos de sistema.
-4. **Offline-First:** Dados persistidos localmente sem necessidade de login ou conexão com a internet.
+O Grimório ajuda a transformar intenções em trabalho organizado: capturar uma tarefa, detalhar os próximos passos, definir quando e com que prioridade agir, acompanhar seu estado e relacioná-la a um objetivo maior. Lista e Kanban atendem diferentes formas de visualizar o trabalho; projetos e pastas simples agrupam atividades; a visão do dia aproxima o planejamento da execução.
+
+A direção do produto é ampliar esse fluxo com apoio a rotinas recorrentes, foco, notificações, consulta de progresso e portabilidade dos dados. O backlog separa o que já está implementado do que continua planejado, sem apresentar intenções futuras como recursos disponíveis.
+
+## ✨ O que está disponível
+
+Os recursos abaixo descrevem a implementação atual, sem depender da divisão do trabalho em sprints:
+
+- 📜 **Rituais (Tarefas):** Cadastro com título, descrição, categoria (*Estudos*, *Trabalho*, *Pessoal*, *Organização*, *Bem-estar*, *Grimório*, *Outros*), prioridade (*Baixa*, *Média*, *Alta*), prazo e estimativa de esforço.
+- ☑️ **Checklists Dinâmicos:** Subtarefas em lista expansível por tarefa, com contadores de progresso imediatos e marcação individual.
+- ⎇ **Quadro Kanban:** Visualização dinâmica em três colunas (*A Fazer*, *Em Andamento*, *Concluído*), com contadores em tempo real, transições diretas nos cards e layout adaptativo (colunas no desktop/web e abas no mobile).
+- 📁 **Projetos e Pastas:** Agrupamento de tarefas por projeto e nome de pasta, com barra de progresso, cores e símbolos. Pastas são agrupamentos simples, não hierárquicos.
+- ⚖️ **Priorização & Ordenação:** Sugestão determinística que considera prazo, prioridade e esforço; a interface também permite ordenar por prazo, prioridade ou esforço. Não considera energia ou disponibilidade contextual.
+- ⌂ **Visão Hoje:** Resumo e filtro das tarefas com vencimento para o dia atual, incluindo seu estado de conclusão.
+- 📦 **Arquivo de Rituais:** Arquive tarefas pelos cards e use a tela de arquivo para restaurá-las ou excluí-las definitivamente.
+- 🛡️ **Persistência & Resiliência:** Um documento local `AsyncStorage` (`@grimorio_state_v2`), operações serializadas, validação em runtime e migração de dados legados (`v1`). Não equivale a criptografia nem sincroniza dados entre dispositivos.
 
 ---
 
-## ✦ Como Executar o Projeto
+## 🧭 Product Backlog
 
-No diretório `grimorio-app/`:
+O backlog organiza a evolução do Grimório em histórias priorizadas. As estimativas estão em Story Points; os números de Sprint indicam o planejamento atual, que pode ser refinado.
+
+| Rank | Prioridade | User Story | Estimativa | Sprint |
+| :---: | :---: | :--- | :---: | :---: |
+| 1 | Alta | Como usuário, desejo cadastrar, listar, editar e concluir tarefas com título, prazo e prioridade, para organizar minhas atividades. | 8 | 1 |
+| 2 | Alta | Como usuário, desejo decompor tarefas em itens de checklist que possam ser concluídos individualmente, para acompanhar os passos de atividades maiores. | 5 | 1 |
+| 3 | Alta | Como usuário, desejo visualizar e mover tarefas entre etapas em um quadro Kanban, para acompanhar o andamento do meu trabalho. | 8 | 1 |
+| 4 | Alta | Como usuário, desejo agrupar tarefas em projetos e pastas e acompanhar seu progresso, para organizar objetivos maiores. | 5 | 1 |
+| 5 | Alta | Como usuário, desejo configurar tarefas recorrentes, para automatizar a organização de atividades repetitivas. | 5 | 2 |
+| 6 | Alta | Como usuário, desejo sincronizar e fazer backup dos meus dados com resolução de conflitos, para acessá-los em diferentes dispositivos com continuidade. | 8 | 2 |
+| 7 | Alta | Como usuário, desejo receber lembretes e alertas de prazo, para não esquecer atividades importantes. | 8 | 2 |
+| 8 | Média | Como usuário, desejo receber sugestões de prioridade que considerem urgência, esforço e nível de energia, para escolher melhor a próxima tarefa. | 5 | 2 |
+| 9 | Média | Como usuário, desejo usar sessões de foco com cronômetro Pomodoro e acompanhar meu progresso, para manter a concentração. | 5 | 2 |
+| 10 | Média | Como usuário, desejo anexar arquivos e notas de voz e criar tarefas por voz ou linguagem natural, para registrar informações com facilidade. | 8 | 3 |
+| 11 | Média | Como usuário, desejo consultar tarefas em um calendário e compartilhá-las, para visualizar compromissos e colaborar quando necessário. | 8 | 3 |
+| 12 | Baixa | Como usuário, desejo consultar relatórios de produtividade e atrasos, para compreender meus hábitos e meu progresso. | 5 | 3 |
+| 13 | Baixa | Como usuário, desejo acessar e registrar tarefas por um widget Android, para capturar atividades rapidamente. | 5 | 3 |
+| 14 | Baixa | Como usuário, desejo importar e exportar tarefas e integrá-las a serviços de agenda, para transportar meus dados entre ferramentas. | 8 | 3 |
+
+---
+
+## 🏗️ Estrutura do Projeto e Arquitetura
+
+> 📐 *Para entender em detalhes as decisões arquiteturais e o formato do documento de armazenamento, leia o [Guia de Arquitetura](docs/ARCHITECTURE.md).*
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+| Camada | Tecnologia | Finalidade |
+| :--- | :--- | :--- |
+| **Ecossistema Mobile** | **Expo ~57.0.26** & **React Native 0.86.3** | Framework unificado e tooling para desenvolvimento mobile |
+| **Execução Web** | **React 19** & **React Native Web** | Preview rápido e responsivo no navegador durante o desenvolvimento |
+| **Linguagem** | **TypeScript ~6.0.3** | Tipagem estática para aplicação e testes |
+| **Armazenamento** | **AsyncStorage ~2.2.0** | Persistência local offline-first |
+| **Suíte de Testes** | **Node.js Test Runner** (`node:test`) | Execução de testes de unidade e integração sem dependências externas |
+| **Design & Assets** | **Sharp** | Pipeline de conversão automatizada do `logo.svg` para ícones do Android |
+| **Build Android** | **Gradle** & **Android SDK** (JDK 17) | Compilação do pacote nativo `.apk` via script PowerShell |
+
+---
+
+## 🚀 Como Instalar, Executar, Usar e Testar o Projeto
+
+### 1. Pré-requisitos
+
+- **Node.js** (versão 22 ou superior, necessária para o runner de testes usado pelo projeto)
+- **npm** (incluso com o Node)
+- *(Opcional para compilar o APK nativo)*: JDK 17 e Android Studio com Android SDK configurados.
+
+### 2. Instalação
+
+Clone o repositório e instale as dependências:
 
 ```bash
-# Instalar dependências
-npm install
-
-# Iniciar o servidor Expo (Web, Android ou iOS)
-npm start
-
-# Iniciar diretamente no navegador web
-npm run web
-
-# Executar a verificação de tipos estritos do TypeScript
-npx tsc --noEmit
-
-# Executar a suíte completa de testes automatizados (19 testes)
-npm test
+git clone https://github.com/MagNumGomes/Grimorio.git
+cd Grimorio
+npm ci
 ```
+
+*(Opcional)* Para regenerar os ícones do aplicativo a partir do arquivo vetorial:
+
+```bash
+npm run icons
+```
+
+---
+
+### 3. Como Executar
+
+#### Opção A: No Navegador (Web - Preview Rápido)
+
+```bash
+npm run web
+```
+Acesse [http://localhost:8081](http://localhost:8081) para testar a interface de forma imediata.
+
+#### Opção B: No Emulador Android ou Dispositivo Físico
+
+```bash
+# Iniciar o servidor Metro do Expo
+npm run start
+
+# Ou abrir diretamente no emulador Android conectado
+npm run android
+```
+
+#### Opção C: Gerar o APK Instalável (Android)
+
+```bash
+npm run android:apk
+```
+
+O script gera os ícones adaptativos, cria o projeto Android e compila o pacote de release:
+```text
+builds/grimorio-1.0.0-preview.apk
+```
+
+O APK de preview usa a configuração de assinatura local do projeto; não é um artefato de distribuição assinado para publicação.
+
+Para instalar via cabo USB com depuração ativada:
+```bash
+adb install -r builds/grimorio-1.0.0-preview.apk
+```
+
+---
+
+### 4. Como Usar o Aplicativo
+
+- **Criar Tarefas (Rituais):** Toque em `+ Ritual`, preencha título, descrição, categoria, esforço estimado, prioridade e data/horário de vencimento.
+- **Checklists & Subtarefas:** Inclua itens no formulário da tarefa e expanda o checklist no card para marcá-los. Os itens têm um nível, sem hierarquia recursiva.
+- **Quadro Kanban:** Alterne para a aba `⎇ Kanban` para gerenciar o fluxo com botões de transição direta (`[Iniciar ›]`, `[‹ A Fazer]`, `[Concluir ✓]`, `[↺ Reabrir]`).
+- **Projetos e Metas:** Toque em `+ Projeto` para criar projetos agrupados por pastas. Vincule rituais para acompanhar a barra de progresso visual.
+- **Foco Diário:** Use a aba `⌂ Hoje` para ver o resumo e as tarefas com prazo para o dia, concluídas ou não.
+- **Sugestão de Prioridades:** A ordenação sugerida considera prazo, prioridade e esforço. A barra também permite ordenar por prazo, prioridade ou esforço.
+- **Arquivo & Histórico:** Abra o menu de arquivadas para restaurar rituais antigos ou excluí-los em definitivo.
+
+---
+
+## 📚 Documentação
+
+Para conhecer a direção do produto e como a implementação atual está organizada:
+
+- 📋 [**Product Backlog**](docs/PRODUCT-BACKLOG.md) — Objetivos, prioridades, estado e escopo das histórias.
+- 🏛️ [**Guia de Arquitetura**](docs/ARCHITECTURE.md) — Organização da aplicação, domínios, persistência local e validação.

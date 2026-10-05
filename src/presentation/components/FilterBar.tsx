@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Modal, Platform } from '
 import { TaskSortOrder, Project } from '../../domain/entities/task';
 import { VALID_PRIORITIES, VALID_CATEGORIES } from '../../domain/services/taskValidation';
 import { colors } from '../theme/colors';
+import type { TaskStatus } from '../../domain/entities/task';
 
-export type StatusFilter = 'all' | 'todo' | 'in_progress' | 'done';
+export type StatusFilter = 'all' | TaskStatus;
 
 interface FilterBarProps {
   statusFilter: StatusFilter;
@@ -347,6 +348,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     marginBottom: 10,

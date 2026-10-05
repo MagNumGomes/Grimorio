@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,11 @@ export function ArchivedTasksModal({
   onRestore,
   onDelete,
 }: ArchivedTasksModalProps) {
+  const [error, setError] = useState<string | null>(null);
+  const perform = async (action: () => Promise<void>) => {
+    setError(null);
+    try { await action(); } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível salvar a alteração.'); }
+  };
   return (
     <Modal
       visible={visible}
@@ -54,6 +59,7 @@ export function ArchivedTasksModal({
             Você pode restaurar qualquer tarefa para trazê-la de volta à atividade.
           </Text>
 
+          {error && <Text accessibilityRole="alert" style={{ color: colors.crimson }}>{error}</Text>}
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             {archivedTasks.length === 0 ? (
               <EmptyState type="no-archived" />
@@ -63,8 +69,8 @@ export function ArchivedTasksModal({
                   key={task.id}
                   task={task}
                   onToggleStatus={() => {}}
-                  onRestore={onRestore}
-                  onDelete={onDelete}
+                  onRestore={id => void perform(() => onRestore(id))}
+                  onDelete={id => void perform(() => onDelete(id))}
                   isArchiveView={true}
                 />
               ))

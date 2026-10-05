@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import type { CreateTaskDTO, UpdateTaskDTO } from '../../src/domain/entities/task';
 import {
   validateCreateTaskInput,
   validateUpdateTaskInput,
@@ -99,4 +100,15 @@ test('Task Validation - validateUpdateTaskInput partial validation', () => {
   });
   assert.strictEqual(invalidUpdate.isValid, false);
   assert.ok(invalidUpdate.errors.title);
+});
+
+test('Runtime validation rejects invalid category, status, subtasks and metadata', () => {
+  const base = { title: 'Valid', priority: 'Alta', category: 'Estudos', estimatedMinutes: 15 };
+  for (const override of [
+    { title: 1 }, { category: 'Unknown' }, { status: 'unknown' }, { subtasks: [{ title: '' }] },
+    { subtasks: [{ title: 'A', completed: 'yes' }] }, { subtasks: [{ title: 'A', id: 'same' }, { title: 'B', id: 'same' }] },
+    { subtasks: Array.from({ length: 201 }, () => ({ title: 'A' })) }, { dueDate: '2026-02-30' }, { estimatedMinutes: NaN },
+  ]) assert.equal(validateCreateTaskInput({ ...base, ...override } as unknown as CreateTaskDTO).isValid, false);
+  assert.equal(validateUpdateTaskInput({ archived: 'yes' } as unknown as UpdateTaskDTO).isValid, false);
+  assert.equal(validateUpdateTaskInput({ projectId: null, dueDate: '', dueTime: '' }).isValid, true);
 });

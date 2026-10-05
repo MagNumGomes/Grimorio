@@ -1,180 +1,56 @@
-import type {
-  CreateProjectDTO,
-  CreateTaskDTO,
-  UpdateTaskDTO,
-  TaskPriority,
-  TaskCategory,
-} from '../entities/task';
+import type { CreateProjectDTO, CreateTaskDTO, UpdateTaskDTO, TaskPriority, TaskCategory } from '../entities/task';
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Record<string, string>;
-}
-
+export interface ValidationResult { isValid: boolean; errors: Record<string, string> }
 export const VALID_PRIORITIES: TaskPriority[] = ['Alta', 'Média', 'Baixa'];
+export const VALID_CATEGORIES: TaskCategory[] = ['Estudos', 'Trabalho', 'Pessoal', 'Organização', 'Bem-estar', 'Grimório', 'Outros'];
+export const VALID_STATUSES = ['todo', 'in_progress', 'done'] as const;
 
-export const VALID_CATEGORIES: TaskCategory[] = [
-  'Estudos',
-  'Trabalho',
-  'Pessoal',
-  'Organização',
-  'Bem-estar',
-  'Grimório',
-  'Outros',
-];
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-export function isValidDateFormat(dateStr: string): boolean {
-  if (!DATE_REGEX.test(dateStr)) return false;
-  const [yearStr, monthStr, dayStr] = dateStr.split('-');
-  const year = parseInt(yearStr, 10);
-  const month = parseInt(monthStr, 10);
-  const day = parseInt(dayStr, 10);
-
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
-
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
+export function isValidDateFormat(value: string): boolean {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(0);
+  date.setFullYear(year, month - 1, day);
+  return year >= 1 && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
-
-export function isValidTimeFormat(timeStr: string): boolean {
-  return TIME_REGEX.test(timeStr);
+export function isValidTimeFormat(value: string): boolean {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
+const result = (errors: Record<string, string>): ValidationResult => ({ isValid: !Object.keys(errors).length, errors });
+const text = (value: unknown, max: number, required = false) =>
+  value === undefined ? !required : typeof value === 'string' && value.trim().length <= max && (!required || value.trim().length > 0);
 
 export function validateCreateProjectInput(input: Partial<CreateProjectDTO>): ValidationResult {
   const errors: Record<string, string> = {};
-
-  if (!input.name || input.name.trim().length === 0) {
-    errors.name = 'O nome do projeto é obrigatório.';
-  } else if (input.name.trim().length > 60) {
-    errors.name = 'O nome do projeto deve ter no máximo 60 caracteres.';
-  }
-
-  if (input.description && input.description.trim().length > 300) {
-    errors.description = 'A descrição do projeto deve ter no máximo 300 caracteres.';
-  }
-
-  if (input.color && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(input.color.trim())) {
-    errors.color = 'A cor do projeto deve ser um valor hexadecimal válido.';
-  }
-
-  if (input.icon && input.icon.trim().length > 2) {
-    errors.icon = 'O ícone do projeto deve ser um símbolo curto.';
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
+  if (!text(input.name, 60, true)) errors.name = 'Informe um nome de projeto de até 60 caracteres.';
+  if (!text(input.description, 300)) errors.description = 'A descrição deve ter até 300 caracteres.';
+  if (!text(input.folder, 60)) errors.folder = 'A pasta deve ter até 60 caracteres.';
+  if (input.color !== undefined && (typeof input.color !== 'string' || !/^#([\da-f]{3}|[\da-f]{6})$/i.test(input.color))) errors.color = 'Cor hexadecimal inválida.';
+  if (!text(input.icon, 2)) errors.icon = 'O ícone deve ser um símbolo curto.';
+  return result(errors);
 }
 
-export function validateCreateTaskInput(input: Partial<CreateTaskDTO>): ValidationResult {
+function validateTask(input: Partial<CreateTaskDTO | UpdateTaskDTO>, creating: boolean): ValidationResult {
   const errors: Record<string, string> = {};
-
-  if (!input.title || input.title.trim().length === 0) {
-    errors.title = 'O título do ritual é obrigatório.';
-  } else if (input.title.trim().length > 120) {
-    errors.title = 'O título deve ter no máximo 120 caracteres.';
-  }
-
-  if (input.description && input.description.length > 500) {
-    errors.description = 'A descrição deve ter no máximo 500 caracteres.';
-  }
-
-  if (input.dueDate && input.dueDate.trim().length > 0) {
-    if (!isValidDateFormat(input.dueDate.trim())) {
-      errors.dueDate = 'Data de vencimento inválida. Use o formato AAAA-MM-DD.';
+  if ((creating || input.title !== undefined) && !text(input.title, 120, true)) errors.title = 'O título do ritual é obrigatório e deve ter até 120 caracteres.';
+  if (!text(input.description, 500)) errors.description = 'A descrição deve ter até 500 caracteres.';
+  if (input.dueDate !== undefined && (typeof input.dueDate !== 'string' || (input.dueDate !== '' && !isValidDateFormat(input.dueDate.trim())))) errors.dueDate = 'Data inválida. Use AAAA-MM-DD.';
+  if (input.dueTime !== undefined && (typeof input.dueTime !== 'string' || (input.dueTime !== '' && !isValidTimeFormat(input.dueTime.trim())))) errors.dueTime = 'Horário inválido. Use HH:MM.';
+  if ((creating || input.priority !== undefined) && !VALID_PRIORITIES.includes(input.priority!)) errors.priority = 'Prioridade inválida.';
+  if ((creating || input.category !== undefined) && !VALID_CATEGORIES.includes(input.category!)) errors.category = 'Categoria inválida.';
+  if ((creating || input.estimatedMinutes !== undefined) && (!Number.isInteger(input.estimatedMinutes) || input.estimatedMinutes! < 1 || input.estimatedMinutes! > 1440)) errors.estimatedMinutes = 'Informe entre 1 e 1440 minutos inteiros.';
+  if (input.status !== undefined && !VALID_STATUSES.includes(input.status)) errors.status = 'Status inválido.';
+  if (input.projectId !== undefined && input.projectId !== null && !text(input.projectId, 120, true)) errors.projectId = 'Projeto inválido.';
+  if ('archived' in input && typeof input.archived !== 'boolean') errors.archived = 'Arquivamento inválido.';
+  if (input.subtasks !== undefined) {
+    if (!Array.isArray(input.subtasks) || input.subtasks.length > 200 || input.subtasks.some(s =>
+      !s || !text(s.title, 120, true) || (s.completed !== undefined && typeof s.completed !== 'boolean') || (s.id !== undefined && !text(s.id, 120, true))
+    )) errors.subtasks = 'Use até 200 subtarefas com títulos de 1 a 120 caracteres.';
+    else {
+      const ids = input.subtasks.flatMap(s => s.id ? [s.id] : []);
+      if (new Set(ids).size !== ids.length) errors.subtasks = 'Subtarefas duplicadas.';
     }
   }
-
-  if (input.dueTime && input.dueTime.trim().length > 0) {
-    if (!isValidTimeFormat(input.dueTime.trim())) {
-      errors.dueTime = 'Horário inválido. Use o formato HH:MM (ex: 14:30).';
-    }
-  }
-
-  if (!input.priority) {
-    errors.priority = 'A prioridade é obrigatória.';
-  } else if (!VALID_PRIORITIES.includes(input.priority)) {
-    errors.priority = 'Prioridade inválida. Escolha entre Alta, Média ou Baixa.';
-  }
-
-  if (!input.category || input.category.trim().length === 0) {
-    errors.category = 'A categoria é obrigatória.';
-  }
-
-  if (input.estimatedMinutes === undefined || input.estimatedMinutes === null) {
-    errors.estimatedMinutes = 'O esforço estimado é obrigatório.';
-  } else if (
-    !Number.isInteger(input.estimatedMinutes) ||
-    input.estimatedMinutes <= 0
-  ) {
-    errors.estimatedMinutes = 'O esforço deve ser um número inteiro de minutos maior que zero.';
-  } else if (input.estimatedMinutes > 1440) {
-    errors.estimatedMinutes = 'O esforço não pode exceder 1440 minutos (24 horas).';
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
+  return result(errors);
 }
-
-export function validateUpdateTaskInput(input: Partial<UpdateTaskDTO>): ValidationResult {
-  const errors: Record<string, string> = {};
-
-  if (input.title !== undefined) {
-    if (input.title.trim().length === 0) {
-      errors.title = 'O título do ritual não pode ser vazio.';
-    } else if (input.title.trim().length > 120) {
-      errors.title = 'O título deve ter no máximo 120 caracteres.';
-    }
-  }
-
-  if (input.description !== undefined && input.description.length > 500) {
-    errors.description = 'A descrição deve ter no máximo 500 caracteres.';
-  }
-
-  if (input.dueDate !== undefined && input.dueDate.trim().length > 0) {
-    if (!isValidDateFormat(input.dueDate.trim())) {
-      errors.dueDate = 'Data de vencimento inválida. Use o formato AAAA-MM-DD.';
-    }
-  }
-
-  if (input.dueTime !== undefined && input.dueTime.trim().length > 0) {
-    if (!isValidTimeFormat(input.dueTime.trim())) {
-      errors.dueTime = 'Horário inválido. Use o formato HH:MM (ex: 14:30).';
-    }
-  }
-
-  if (input.priority !== undefined && !VALID_PRIORITIES.includes(input.priority)) {
-    errors.priority = 'Prioridade inválida. Escolha entre Alta, Média ou Baixa.';
-  }
-
-  if (input.category !== undefined && input.category.trim().length === 0) {
-    errors.category = 'A categoria não pode ser vazia.';
-  }
-
-  if (input.estimatedMinutes !== undefined) {
-    if (
-      !Number.isInteger(input.estimatedMinutes) ||
-      input.estimatedMinutes <= 0
-    ) {
-      errors.estimatedMinutes = 'O esforço deve ser um número inteiro de minutos maior que zero.';
-    } else if (input.estimatedMinutes > 1440) {
-      errors.estimatedMinutes = 'O esforço não pode exceder 1440 minutos (24 horas).';
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
+export const validateCreateTaskInput = (input: Partial<CreateTaskDTO>) => validateTask(input, true);
+export const validateUpdateTaskInput = (input: Partial<UpdateTaskDTO>) => validateTask(input, false);

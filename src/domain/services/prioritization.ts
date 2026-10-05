@@ -240,8 +240,8 @@ export function suggestTaskOrder(tasks: Task[], referenceDate = new Date()): Pri
   const scored = tasks.map((task) => calculatePriorityScore(task, referenceDate));
 
   return scored.sort((a, b) => {
-    if (a.task.status === 'pending' && b.task.status === 'completed') return -1;
-    if (a.task.status === 'completed' && b.task.status === 'pending') return 1;
+    if (a.task.status !== 'done' && b.task.status === 'done') return -1;
+    if (a.task.status === 'done' && b.task.status !== 'done') return 1;
 
     if (b.score !== a.score) {
       return b.score - a.score;

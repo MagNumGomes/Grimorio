@@ -9,12 +9,7 @@ export type TaskCategory =
   | 'Grimório'
   | 'Outros';
 
-export type TaskStatus =
-  | 'pending'
-  | 'completed'
-  | 'todo'
-  | 'in_progress'
-  | 'done';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
 
 export interface Subtask {
   id: string;
@@ -24,11 +19,13 @@ export interface Subtask {
 }
 
 export interface SubtaskInput {
+  id?: string;
   title: string;
   completed?: boolean;
 }
 
 export interface Project {
+  folder?: string;
   id: string;
   name: string;
   description?: string;
@@ -43,7 +40,7 @@ export interface Task {
   title: string;
   description: string;
   dueDate?: string; // YYYY-MM-DD
-  dueTime?: string; // HHzMM
+  dueTime?: string; // HH:MM
   priority: TaskPriority;
   category: TaskCategory;
   estimatedMinutes: number; // in minutes (> 0)
@@ -79,11 +76,12 @@ export interface UpdateTaskDTO {
   estimatedMinutes?: number;
   status?: TaskStatus;
   archived?: boolean;
-  projectId?: string;
+  projectId?: string | null;
   subtasks?: SubtaskInput[];
 }
 
 export interface CreateProjectDTO {
+  folder?: string;
   name: string;
   description?: string;
   color?: string;
@@ -91,7 +89,9 @@ export interface CreateProjectDTO {
 }
 
 export interface TaskFilterOptions {
-  status?: 'all' | 'pending' | 'completed' | 'todo' | 'in_progress' | 'done';
+  status?: 'all' | TaskStatus;
+  projectId?: string;
+  dueDate?: string;
   category?: string;
   priority?: string;
   searchQuery?: string;

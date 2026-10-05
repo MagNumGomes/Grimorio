@@ -21,12 +21,12 @@ interface ProjectModalProps {
 }
 
 const COLOR_PRESETS = [
-  { name: 'Ouro Arcana', value: '#c38b32' },
-  { name: 'Ametista Profunda', value: '#403243' },
-  { name: 'Sálvia Mística', value: '#778b72' },
-  { name: 'Terracota Rúnica', value: '#a24a4a' },
-  { name: 'Ardósia Sombria', value: '#4b5563' },
-  { name: 'Cobalto Alquímico', value: '#2c5282' },
+  { name: 'Ouro Arcano', value: colors.gold },
+  { name: 'Ameixa Profunda', value: colors.plum },
+  { name: 'Sálvia Mística', value: colors.sage },
+  { name: 'Carmesim', value: colors.crimson },
+  { name: 'Ouro Envelhecido', value: colors.goldDark },
+  { name: 'Tinta Suave', value: colors.muted },
 ];
 
 const ICON_PRESETS = ['◈', '✦', '☷', '◉', '☾', '★', '⚑', '✧'];
@@ -34,6 +34,7 @@ const ICON_PRESETS = ['◈', '✦', '☷', '◉', '☾', '★', '⚑', '✧'];
 export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [folder, setFolder] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLOR_PRESETS[0].value);
   const [selectedIcon, setSelectedIcon] = useState(ICON_PRESETS[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,6 +43,7 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
   const resetForm = () => {
     setName('');
     setDescription('');
+    setFolder('');
     setSelectedColor(COLOR_PRESETS[0].value);
     setSelectedIcon(ICON_PRESETS[0]);
     setErrors({});
@@ -56,6 +58,7 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
   const handleSubmit = async () => {
     const dto: CreateProjectDTO = {
       name: name.trim(),
+      folder: folder.trim() || undefined,
       description: description.trim() ? description.trim() : undefined,
       color: selectedColor,
       icon: selectedIcon,
@@ -122,7 +125,7 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
                   }
                 }}
                 placeholder="Ex: Trabalho, Estudos, Vida Pessoal..."
-                placeholderTextColor={colors.placeholder}
+                placeholderTextColor={colors.muted}
                 maxLength={60}
               />
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
@@ -135,7 +138,7 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Descreva o objetivo deste projeto..."
-                placeholderTextColor={colors.placeholder}
+                placeholderTextColor={colors.muted}
                 multiline
                 numberOfLines={3}
                 maxLength={300}
@@ -144,11 +147,18 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
             </View>
 
             <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Pasta (opcional)</Text>
+              <TextInput accessibilityLabel="Pasta do projeto" value={folder} onChangeText={setFolder} maxLength={60} style={styles.input} placeholder="Ex.: Pessoal ou Trabalho" placeholderTextColor={colors.muted} />
+              {errors.folder && <Text style={styles.errorText}>{errors.folder}</Text>}
+            </View>
+            <View style={styles.fieldGroup}>
               <Text style={styles.label}>Ícone Simbólico</Text>
               <View style={styles.iconGrid}>
                 {ICON_PRESETS.map((icon) => (
                   <Pressable
                     key={icon}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ícone ${icon}`}
                     style={[
                       styles.iconOption,
                       selectedIcon === icon && styles.iconOptionActive,
@@ -174,6 +184,8 @@ export function ProjectModal({ visible, onClose, onSubmit }: ProjectModalProps) 
                 {COLOR_PRESETS.map((col) => (
                   <Pressable
                     key={col.value}
+                    accessibilityRole="button"
+                    accessibilityLabel={col.name}
                     style={[
                       styles.colorOption,
                       { backgroundColor: col.value },

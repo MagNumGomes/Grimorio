@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { Task } from '../../domain/entities/task';
+import { Task, TaskStatus } from '../../domain/entities/task';
 import { PrioritizedTask } from '../../domain/services/prioritization';
 import { formatDueDisplay, isTaskOverdue } from '../../shared/utils/dateUtils';
 import { colors } from '../theme/colors';
 import { PriorityScoreBadge } from './PriorityScoreBadge';
 
 interface TaskCardProps {
+  projectName?: string;
+  onToggleSubtask?: (id: string, subId: string) => void;
+  onMove?: (id: string, status: TaskStatus) => void;
   task: Task;
   prioritizedTask?: PrioritizedTask;
   rank?: number;
@@ -19,6 +22,9 @@ interface TaskCardProps {
 }
 
 export function TaskCard({
+  projectName,
+  onToggleSubtask,
+  onMove,
   task,
   prioritizedTask,
   rank,
@@ -29,7 +35,8 @@ export function TaskCard({
   onDelete,
   isArchiveView = false,
 }: TaskCardProps) {
-  const isDone = task.status === 'completed';
+  const [expanded, setExpanded] = useState(false);
+  const isDone = task.status === 'done';
   const overdue = !isDone && isTaskOverdue(task.dueDate, task.dueTime);
   const dueDisplay = formatDueDisplay(task.dueDate, task.dueTime);
 
@@ -94,17 +101,30 @@ export function TaskCard({
             </View>
 
             <View style={styles.chip}>
-              <Text style={styles.chipText}>⏱ {task.estimatedMinutes} min</Text>
+              <Text style={styles.chipText}>{task.estimatedMinutes} min</Text>
             </View>
 
             <View style={[styles.chip, overdue && styles.chipOverdue]}>
               <Text style={[styles.chipText, overdue && styles.chipOverdueText]}>
-                {overdue ? '⚠ ' : '📅 '}
+                {overdue ? 'Atrasado · ' : 'Prazo · '}
                 {dueDisplay}
               </Text>
             </View>
           </View>
 
+          {projectName && <Text style={styles.description}>◈ {projectName}</Text>}
+          {task.subtasks.length > 0 && (
+            <View>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Subtarefas de ${task.title}`} onPress={() => setExpanded(!expanded)}>
+                <Text style={styles.actionText}>{expanded ? '−' : '+'} {task.subtasks.filter(s => s.completed).length} de {task.subtasks.length} subtarefas</Text>
+              </Pressable>
+              {expanded && task.subtasks.map(s => (
+                <Pressable key={s.id} accessibilityRole="checkbox" accessibilityState={{ checked: s.completed }} accessibilityLabel={s.title} disabled={isArchiveView} onPress={() => onToggleSubtask?.(task.id, s.id)} style={styles.actionButton}>
+                  <Text style={styles.description}>{s.completed ? '✓' : '○'} {s.title}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           {/* Prioritization suggestion badge */}
           {prioritizedTask && !isDone && !isArchiveView && (
             <PriorityScoreBadge prioritizedTask={prioritizedTask} rank={rank} />
@@ -112,6 +132,13 @@ export function TaskCard({
         </View>
       </View>
 
+      {!isArchiveView && onMove && (
+        <View style={styles.metaChips}>
+          {task.status !== 'todo' && <Pressable accessibilityRole="button" onPress={() => onMove(task.id, 'todo')}><Text style={styles.actionText}>‹ A Fazer</Text></Pressable>}
+          {task.status !== 'in_progress' && <Pressable accessibilityRole="button" onPress={() => onMove(task.id, 'in_progress')}><Text style={styles.actionText}>{isDone ? '↺ Reabrir' : 'Iniciar ›'}</Text></Pressable>}
+          {!isDone && <Pressable accessibilityRole="button" onPress={() => onMove(task.id, 'done')}><Text style={styles.actionText}>Concluir ✓</Text></Pressable>}
+        </View>
+      )}
       {/* Action Footer */}
       <View style={styles.actionFooter}>
         {isArchiveView ? (

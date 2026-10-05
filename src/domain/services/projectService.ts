@@ -11,7 +11,7 @@ export interface ProjectProgressSummary {
 export function calculateProjectProgress(project: Project, tasks: Task[]): ProjectProgressSummary {
   const projectTasks = tasks.filter((task) => task.projectId === project.id && !task.archived);
   const totalTasks = projectTasks.length;
-  const completedTasks = projectTasks.filter((task) => task.status === 'completed' || task.status === 'done').length;
+  const completedTasks = projectTasks.filter((task) => task.status === 'done').length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return {
